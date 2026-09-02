@@ -1,0 +1,17 @@
+# Environment files (Secrets)
+.env
+.env*.local
+.env.local
+
+# Next.js / Build outputs
+.next/
+out/
+build/
+dist/
+
+# Dependencies
+node_modules/
+
+# OS / Editor files
+.DS_Store
+*.log
