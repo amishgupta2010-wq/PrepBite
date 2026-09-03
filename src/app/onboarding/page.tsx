@@ -398,18 +398,17 @@ export default function OnboardingPage() {
             <h2 className="step-question">Gender</h2>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '2rem' }}>
               {[
-                { id: 'male', label: 'Male', icon: '🧔' },
-                { id: 'female', label: 'Female', icon: '👩' },
-                { id: 'other', label: 'Other', icon: '🧑' }
+                { id: 'male', label: 'Male' },
+                { id: 'female', label: 'Female' },
+                { id: 'other', label: 'Other' }
               ].map((g) => (
                 <button 
                   key={g.id} 
                   className={`day-card ${data.gender === g.id ? 'selected' : ''}`} 
                   onClick={() => setData({ ...data, gender: g.id as any })}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem', flex: 1, minWidth: '80px', height: '100px' }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', flex: 1, minWidth: '80px', height: '60px' }}
                 >
-                  <span style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>{g.icon}</span>
-                  <span style={{ fontSize: '0.875rem' }}>{g.label}</span>
+                  <span style={{ fontSize: '1.125rem', fontWeight: 600 }}>{g.label}</span>
                 </button>
               ))}
             </div>

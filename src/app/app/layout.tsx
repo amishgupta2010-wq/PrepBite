@@ -12,7 +12,7 @@ import { isBetaTester } from '../../lib/betaTester';
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { status } = useSession();
+  const { status, data: session } = useSession();
   
   const [showBadge, setShowBadge] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -25,6 +25,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [editValue, setEditValue] = useState<string>('');
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [isPro, setIsPro] = useState(false);
+
+  const [mealStreak, setMealStreak] = useState(0);
+  const [exerciseStreak, setExerciseStreak] = useState(0);
 
   useEffect(() => {
     // Auth Guard
@@ -47,7 +50,44 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const ob = JSON.parse(localStorage.getItem('prepbite-onboarding') || '{}');
     setUserData(ob);
     setIsPro(localStorage.getItem('prepbite-is-pro') === 'true' || isBetaTester());
-  }, [pathname]);
+
+    // Calculate Streaks
+    try {
+      const progress = JSON.parse(localStorage.getItem('prepbite-progress') || '{}');
+      let mStreak = 0;
+      let eStreak = 0;
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      let checkMeal = true;
+      let checkExercise = true;
+
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const data = progress[dateStr];
+        
+        if (checkMeal) {
+          if (data && data.breakfast && data.lunch && data.dinner) {
+            mStreak++;
+          } else if (i !== 0) {
+            checkMeal = false;
+          }
+        }
+        
+        if (checkExercise) {
+          if (data && data.exercise) {
+            eStreak++;
+          } else if (i !== 0) {
+            checkExercise = false;
+          }
+        }
+        if (!checkMeal && !checkExercise) break;
+      }
+      setMealStreak(mStreak);
+      setExerciseStreak(eStreak);
+    } catch {}
+  }, [pathname, status, router]);
 
   const toggleTheme = () => {
     const next = !isLightMode;
@@ -108,24 +148,53 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             PrepBite
           </div>
         </div>
-        <button
-          className={`settings-btn ${showSettings ? 'spin-45' : ''}`}
-          onClick={() => setShowSettings(true)}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-primary)',
-            padding: '0.4rem',
-            cursor: 'pointer',
-            fontSize: '1.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'transform 0.3s ease'
-          }}
-        >
-          ⚙️
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {/* Streaks */}
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {mealStreak > 0 && (
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#FF4757', display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(255, 71, 87, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '12px' }}>
+                {mealStreak}x 🔥
+              </div>
+            )}
+            {exerciseStreak > 0 && (
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#4285F4', display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(66, 133, 244, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '12px' }}>
+                {exerciseStreak}x 🔥
+              </div>
+            )}
+          </div>
+          
+          {/* User Avatar */}
+          <div style={{
+            width: '32px', height: '32px', borderRadius: '50%',
+            background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            overflow: 'hidden'
+          }}>
+            {session?.user?.image ? (
+              <img src={session.user.image} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ fontSize: '1.25rem' }}>👤</span>
+            )}
+          </div>
+
+          <button
+            className={`settings-btn ${showSettings ? 'spin-45' : ''}`}
+            onClick={() => setShowSettings(true)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-primary)',
+              padding: '0.4rem',
+              cursor: 'pointer',
+              fontSize: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'transform 0.3s ease'
+            }}
+          >
+            ⚙️
+          </button>
+        </div>
       </header>
 
       <div className="app-container">

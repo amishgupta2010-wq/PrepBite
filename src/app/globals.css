@@ -1409,10 +1409,27 @@ input[type="number"] {
   margin-bottom: 0.5rem;
 }
 .cookbook-step-text {
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   line-height: 1.6;
-  color: #F0E6D2;
+  color: #111111;
+  font-weight: 500;
   flex: 1;
+}
+.cookbook-ingredients-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+.cookbook-ingredient-item {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 1.15rem;
+  color: #111111;
+  font-weight: 500;
+}
+.cookbook-ingredient-dot {
+  color: #D4AF37;
 }
 .cookbook-step-image {
   display: flex;

@@ -70,10 +70,24 @@ export default function ProgressPage() {
 
   const getDayRecipes = () => {
     if (!mealPlan?.days || !selectedDate) return null;
-    const d = new Date(selectedDate + 'T12:00:00');
-    const dow = d.getDay(); // 0=Sun
-    const planIdx = dow === 0 ? 6 : dow - 1; // Mon=0..Sun=6
-    return mealPlan.days[planIdx] || null;
+    
+    if (mealPlan.startDate) {
+      const start = new Date(mealPlan.startDate + 'T00:00:00');
+      const selected = new Date(selectedDate + 'T00:00:00');
+      const diffTime = selected.getTime() - start.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays >= 0 && diffDays < mealPlan.days.length) {
+        return mealPlan.days[diffDays];
+      }
+      return null;
+    } else {
+      // Fallback for old meal plans
+      const d = new Date(selectedDate + 'T12:00:00');
+      const dow = d.getDay(); // 0=Sun
+      const planIdx = dow === 0 ? 6 : dow - 1; // Mon=0..Sun=6
+      return mealPlan.days[planIdx] || null;
+    }
   };
 
   const dayRecipes = getDayRecipes();
@@ -118,9 +132,42 @@ export default function ProgressPage() {
         <div style={{ display: 'grid', gridTemplateColumns: dayRecipes ? '1fr 1fr' : '1fr', gap: '1rem', marginBottom: '2rem' }}>
           {/* Checklist */}
           <div>
-            <h2 className="heading-md" style={{ marginBottom: '1rem' }}>
-              {selectedDate === todayStr ? "Today's Tasks" : 'Tasks'}
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 className="heading-md" style={{ margin: 0 }}>
+                {selectedDate === todayStr ? "Today's Tasks" : 'Tasks'}
+              </h2>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {(() => {
+                  let mStreak = 0;
+                  let eStreak = 0;
+                  const today = new Date();
+                  today.setHours(0,0,0,0);
+                  let checkM = true;
+                  let checkE = true;
+                  for(let i=0; i<365; i++) {
+                    const d = new Date(today);
+                    d.setDate(today.getDate()-i);
+                    const ds = d.toISOString().split('T')[0];
+                    const dd = data[ds];
+                    if(checkM) {
+                      if(dd && dd.breakfast && dd.lunch && dd.dinner) mStreak++;
+                      else if(i!==0) checkM = false;
+                    }
+                    if(checkE) {
+                      if(dd && dd.exercise) eStreak++;
+                      else if(i!==0) checkE = false;
+                    }
+                    if(!checkM && !checkE) break;
+                  }
+                  return (
+                    <>
+                      {mStreak > 0 && <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#FF4757', background: 'rgba(255, 71, 87, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '12px' }}>{mStreak}x 🔥</span>}
+                      {eStreak > 0 && <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#4285F4', background: 'rgba(66, 133, 244, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '12px' }}>{eStreak}x 🔥</span>}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
             <div className="checklist-container">
               {[
                 { key: 'exercise', label: 'Did Exercise 💪' },

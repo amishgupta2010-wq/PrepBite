@@ -203,7 +203,7 @@ export default function LandingPage() {
             {/* Google OAuth button */}
             <button
               className="lp-google-btn"
-              onClick={() => signIn('google')}
+              onClick={() => signIn('google', { callbackUrl: '/auth-callback' })}
               style={{ padding: '0.75rem' }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">

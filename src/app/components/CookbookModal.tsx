@@ -56,8 +56,8 @@ async function playPageCrumbleSound() {
     source.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    // Start at 0.15s to trim potential initial silence, and play for a short duration
-    source.start(0, 0.15);
+    // Start at 2.0s as requested by user to skip the beginning of the audio file
+    source.start(0, 2);
   } catch { /* audio not supported or fetch failed */ }
 }
 

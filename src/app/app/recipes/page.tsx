@@ -90,9 +90,9 @@ export default function RecipesPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPro = isProUser();
 
-  const fetchRecipes = useCallback(async (signal?: AbortSignal) => {
-    // Check generation limit for free users
-    if (!isPro) {
+  const fetchRecipes = useCallback(async (signal?: AbortSignal, isFilterUpdate: boolean = false) => {
+    // Check generation limit for free users (only on initial generation, not filter toggles)
+    if (!isPro && !isFilterUpdate) {
       const count = getGenCount();
       if (count >= FREE_LIMIT) {
         setLoading(false);
@@ -140,7 +140,7 @@ export default function RecipesPage() {
       setExtras(data.extras || {});
       setCache(fingerprint, { days: data.days || [], extras: data.extras || {} });
       // Count this generation for free users
-      if (!isPro) incrementGenCount();
+      if (!isPro && !isFilterUpdate) incrementGenCount();
     } catch (e: any) {
       if (e.name === 'AbortError') return;
       setError(USER_ERROR);
@@ -148,6 +148,9 @@ export default function RecipesPage() {
       setLoading(false);
     }
   }, [filters, isPro]);
+
+  // Track initial mount to differentiate from filter changes
+  const initialMount = useRef(true);
 
   // Debounced fetch on filter changes
   useEffect(() => {
@@ -157,7 +160,8 @@ export default function RecipesPage() {
     debounceRef.current = setTimeout(() => {
       const controller = new AbortController();
       abortRef.current = controller;
-      fetchRecipes(controller.signal);
+      fetchRecipes(controller.signal, !initialMount.current);
+      initialMount.current = false;
     }, 400);
 
     return () => {
@@ -238,7 +242,8 @@ export default function RecipesPage() {
         localStorage.setItem('prepbite-shopping', JSON.stringify([...newItems, ...existingShop]));
         localStorage.setItem('prepbite-shopping-badge', 'true');
       }
-      localStorage.setItem('prepbite-mealplan', JSON.stringify({ days, generatedAt: Date.now() }));
+      const startDate = new Date().toISOString().split('T')[0];
+      localStorage.setItem('prepbite-mealplan', JSON.stringify({ days, generatedAt: Date.now(), startDate }));
       localStorage.removeItem(CACHE_KEY);
       setShowToast(true);
       setTimeout(() => { setShowToast(false); router.push('/app/ingredients'); }, 3000);
