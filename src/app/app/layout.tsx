@@ -86,9 +86,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, fontSize: '1.25rem', color: 'var(--accent)', letterSpacing: '-0.5px' }}>
-          <img src="/logo.jpg" alt="PrepBite Logo" style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'cover' }} />
-          PrepBite
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button 
+            onClick={() => router.push('/')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0.2rem'
+            }}
+          >
+            ←
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, fontSize: '1.25rem', color: 'var(--accent)', letterSpacing: '-0.5px' }}>
+            <img src="/logo.jpg" alt="PrepBite Logo" style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'cover' }} />
+            PrepBite
+          </div>
         </div>
         <button
           className={`settings-btn ${showSettings ? 'spin-45' : ''}`}

@@ -297,7 +297,11 @@ export default function OnboardingPage() {
             <button className="btn-back" onClick={handleBack} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-body)' }}>
               ← <span style={{ fontSize: '1rem' }}>{t.back}</span>
             </button>
-          ) : <div />}
+          ) : (
+            <button className="btn-back" onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-body)' }}>
+              ← <span style={{ fontSize: '1rem' }}>Home</span>
+            </button>
+          )}
           <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{t.step} {step} {t.of} {totalSteps}</span>
         </div>
         <div className="progress-bar">
@@ -331,17 +335,19 @@ export default function OnboardingPage() {
           <div className="animate-slide-up">
             <h2 className="step-question">Account Credentials</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
-              <div>
-                <input 
-                  className="input" 
-                  type="email" 
-                  placeholder="Email address" 
-                  value={data.email} 
-                  onChange={(e) => setData({ ...data, email: e.target.value })} 
-                />
-                {emailError && <p style={{ color: '#FF4757', fontSize: '0.875rem', marginTop: '0.5rem' }}>{emailError}</p>}
-                {data.email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && <p style={{ color: '#FF4757', fontSize: '0.875rem', marginTop: '0.5rem' }}>Invalid email format</p>}
-              </div>
+              {!oauthSession && (
+                <div>
+                  <input 
+                    className="input" 
+                    type="email" 
+                    placeholder="Email address" 
+                    value={data.email} 
+                    onChange={(e) => setData({ ...data, email: e.target.value })} 
+                  />
+                  {emailError && <p style={{ color: '#FF4757', fontSize: '0.875rem', marginTop: '0.5rem' }}>{emailError}</p>}
+                  {data.email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && <p style={{ color: '#FF4757', fontSize: '0.875rem', marginTop: '0.5rem' }}>Invalid email format</p>}
+                </div>
+              )}
               <div style={{ position: 'relative' }}>
                 <input 
                   className="input" 
@@ -529,8 +535,21 @@ export default function OnboardingPage() {
         )}
       </div>
 
-      {/* Next button */}
-      <div style={{ padding: '1.5rem 0', marginTop: 'auto' }}>
+      {/* Next button area */}
+      <div style={{ padding: '1.5rem 0', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+          Already have an account?{' '}
+          <button 
+            onClick={() => router.push('/?login=true')}
+            style={{
+              background: 'none', border: 'none', color: '#4285F4',
+              fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
+              textDecoration: 'underline',
+            }}
+          >
+            Sign in!
+          </button>
+        </p>
         <button className="btn btn-primary" disabled={!isStepValid} onClick={handleNext} style={{ width: '100%', fontSize: '1.125rem', padding: '1rem' }}>
           {step === totalSteps ? t.complete : t.next}
         </button>
