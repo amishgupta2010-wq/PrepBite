@@ -25,4 +25,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return `${baseUrl}/auth-callback`;
     },
   },
+  trustHost: true,
 });
