@@ -193,11 +193,8 @@ export default function IngredientsPage() {
         }}
         onClick={() => {
           if (isNavigating) return;
-          // Check free limit
-          if (!isPro && genCount >= FREE_LIMIT) {
-            setShowUpgrade(true);
-            return;
-          }
+          // Check free limit - completely removed for free users
+
           if (localStorage.getItem('prepbite-mealplan')) {
             setShowGenerateConfirm(true);
           } else {
@@ -208,11 +205,7 @@ export default function IngredientsPage() {
         disabled={ingredients.length === 0 || isNavigating}>
         {isNavigating ? 'Loading...' : 'Generate Recipes 🍳'}
       </button>
-      {!isPro && (
-        <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-          {genCount}/{FREE_LIMIT} free generations used this month
-        </p>
-      )}
+      {/* Free limit text removed */}
 
       {/* Remove All Confirmation Modal */}
       {showRemoveConfirm && (

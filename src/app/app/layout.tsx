@@ -377,7 +377,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowSignOutConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
-                import('../../lib/auth').then(({ logoutUser }) => logoutUser());
+                const { logoutUser } = await import('../../lib/auth');
+                logoutUser();
                 const { signOut } = await import('next-auth/react');
                 await signOut({ redirect: false });
                 window.location.href = '/';
@@ -395,7 +396,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowDeleteConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
-                import('../../lib/auth').then(({ deleteAccount }) => deleteAccount());
+                const { deleteAccount } = await import('../../lib/auth');
+                deleteAccount();
                 const { signOut } = await import('next-auth/react');
                 await signOut({ redirect: false });
                 window.location.href = '/';

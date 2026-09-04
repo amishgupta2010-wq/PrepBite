@@ -337,7 +337,23 @@ export default function LandingPage() {
           <div className="lp-badge" style={{ margin: '0 auto 1rem' }}>Pricing</div>
           <h2 className="lp-section-title">Simple, transparent pricing</h2>
           <p className="lp-section-sub">Start free. Upgrade when you need more power.</p>
-          <div className="lp-pricing-grid">
+          <div className="lp-pricing-grid" style={{ position: 'relative' }}>
+            {/* Overlay */}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(10, 10, 10, 0.7)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '24px',
+            }}>
+              <h2 style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-primary)', textAlign: 'center', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+                (Coming Soon)
+              </h2>
+            </div>
             {/* Free tier */}
             <div className="lp-price-card">
               <h3 className="lp-price-name">Free</h3>
