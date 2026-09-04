@@ -373,8 +373,8 @@ export default function LandingPage() {
                 <li><span className="lp-check">✓</span> Unlimited smart recipe swapping</li>
                 <li><span className="lp-check">✓</span> Auto-add missing ingredients</li>
               </ul>
-              <button className="lp-btn-gold" style={{ width: '100%' }} onClick={handleUpgrade} disabled={checkoutLoading}>
-                {checkoutLoading ? 'Redirecting...' : 'Upgrade to Pro'}
+              <button className="lp-btn-gold" style={{ width: '100%', opacity: 0.7, cursor: 'not-allowed' }} disabled={true}>
+                Upgrade to Pro (Coming soon)
               </button>
             </div>
           </div>

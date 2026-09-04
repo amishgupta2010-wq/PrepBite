@@ -91,16 +91,8 @@ export default function RecipesPage() {
   const isPro = isProUser();
 
   const fetchRecipes = useCallback(async (signal?: AbortSignal, isFilterUpdate: boolean = false) => {
-    // Check generation limit for free users (only on initial generation, not filter toggles)
-    if (!isPro && !isFilterUpdate) {
-      const count = getGenCount();
-      if (count >= FREE_LIMIT) {
-        setLoading(false);
-        setUpgradeReason('limit');
-        setShowUpgrade(true);
-        return;
-      }
-    }
+    // Limits removed for free testing
+
 
     setLoading(true);
     setError('');
@@ -138,8 +130,7 @@ export default function RecipesPage() {
       if (data.error) throw new Error(USER_ERROR);
       setDays(data.days || []);
       setExtras(data.extras || {});
-      setCache(fingerprint, { days: data.days || [], extras: data.extras || {} });
-      // Count this generation for free users
+      // Count this generation for free users (stat tracking only, no block)
       if (!isPro && !isFilterUpdate) incrementGenCount();
     } catch (e: any) {
       if (e.name === 'AbortError') return;
@@ -183,11 +174,7 @@ export default function RecipesPage() {
   };
 
   const handleSwapClick = (dayIdx: number, mealIdx: number) => {
-    if (!isPro) {
-      setUpgradeReason('swap');
-      setShowUpgrade(true);
-      return;
-    }
+    // Pro limit removed for testing
     setRefreshTarget({ day: dayIdx, meal: mealIdx });
   };
 
@@ -196,16 +183,35 @@ export default function RecipesPage() {
     const { day: dayIdx, meal: mealIdx } = refreshTarget;
     const mealType = ['breakfast', 'lunch', 'dinner'][mealIdx];
     const pool = extras[mealType] || [];
+    
     if (pool.length > 0) {
-      const newRecipe = pool[0];
-      const oldRecipe = days[dayIdx].meals[mealIdx];
+      const currentDayMeals = days[dayIdx].meals;
+      const oldRecipe = currentDayMeals[mealIdx];
+      
+      // Find a recipe in the pool that isn't the old recipe AND isn't already used in this day
+      const currentTitles = currentDayMeals.map((m: any) => m.title);
+      let newRecipeIdx = pool.findIndex((r: any) => r.title !== oldRecipe.title && !currentTitles.includes(r.title));
+      
+      // Fallback: if all pool recipes are in today's meals, at least pick one that isn't the old recipe
+      if (newRecipeIdx === -1) {
+        newRecipeIdx = pool.findIndex((r: any) => r.title !== oldRecipe.title);
+      }
+      // Ultimate fallback: just pick the first one if somehow they are all the exact same as the old recipe
+      if (newRecipeIdx === -1) newRecipeIdx = 0;
+
+      const newRecipe = pool[newRecipeIdx];
       const updatedDays = [...days];
       updatedDays[dayIdx] = {
         ...updatedDays[dayIdx],
-        meals: updatedDays[dayIdx].meals.map((m: any, i: number) => i === mealIdx ? { ...newRecipe, type: m.type } : m),
+        meals: currentDayMeals.map((m: any, i: number) => i === mealIdx ? { ...newRecipe, type: m.type } : m),
       };
       setDays(updatedDays);
-      setExtras(prev => ({ ...prev, [mealType]: [...prev[mealType].slice(1), oldRecipe] }));
+      
+      // Remove the used recipe from the pool and add the old recipe back to the end
+      const newPool = [...pool];
+      newPool.splice(newRecipeIdx, 1);
+      newPool.push(oldRecipe);
+      setExtras(prev => ({ ...prev, [mealType]: newPool }));
     }
     setRefreshTarget(null);
   };
@@ -219,19 +225,17 @@ export default function RecipesPage() {
       const IGNORE_LIST = ['water', 'salt', 'pepper', 'sugar', 'oil', 'olive oil', 'butter', 'garlic powder', 'onion powder'];
       const allMissing: { name: string }[] = [];
 
-      // Auto grocery list is a Pro feature
-      if (isPro) {
-        days.forEach(day => {
-          day.meals.forEach((meal: any) => {
-            (meal.ingredients || []).forEach((ing: any) => {
-              const ingName = ing.name.toLowerCase();
-              if (!isIngredientAvailable(ing.name, userIngs) && !IGNORE_LIST.some(ignore => ingName.includes(ignore))) {
-                allMissing.push({ name: ing.name });
-              }
-            });
+      // Auto grocery list (Pro limit removed for testing)
+      days.forEach(day => {
+        day.meals.forEach((meal: any) => {
+          (meal.ingredients || []).forEach((ing: any) => {
+            const ingName = ing.name.toLowerCase();
+            if (!isIngredientAvailable(ing.name, userIngs) && !IGNORE_LIST.some(ignore => ingName.includes(ignore))) {
+              allMissing.push({ name: ing.name });
+            }
           });
         });
-      }
+      });
 
       const deduped = deduplicateIngredients(allMissing);
       const newItems = deduped.map(item => ({
