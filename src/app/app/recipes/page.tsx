@@ -378,11 +378,10 @@ export default function RecipesPage() {
               </div>
               <button
                 className="recipe-refresh-btn"
-                title={isPro ? 'Replace this recipe' : 'Pro feature — Upgrade to swap'}
+                title="Replace this recipe"
                 onClick={() => handleSwapClick(selectedDay, i)}
-                style={!isPro ? { opacity: 0.4 } : {}}
               >
-                {isPro ? '⟳' : '🔒'}
+                ⟳
               </button>
             </div>
           ))}

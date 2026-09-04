@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
   if (apiKey && ingredientsStr.trim()) {
     try {
       const parsed = await parseIngredientsWithGroq(userIngs);
-      const findUrl = `https://api.spoonacular.com/recipes/findByIngredients?apiKey=${apiKey}&ingredients=${encodeURIComponent(parsed.searchString)}&number=21&ranking=1&ignorePantry=false`;
+      const findUrl = `https://api.spoonacular.com/recipes/findByIngredients?apiKey=${apiKey}&ingredients=${encodeURIComponent(parsed.searchString)}&number=42&ranking=1&ignorePantry=false`;
       const findRes = await fetch(findUrl);
       if (findRes.ok) {
         const found = await findRes.json();
@@ -125,8 +125,9 @@ export async function GET(req: NextRequest) {
             if (exclude === 'dairy') recipes = recipes.filter((r: any) => r.dairyFree);
 
             if (recipes.length >= 3) {
-              while (recipes.length < 21) recipes.push(...recipes.slice(0, 21 - recipes.length));
-              recipes = recipes.slice(0, 21);
+              while (recipes.length < 42) recipes.push(...recipes.slice(0, 42 - recipes.length));
+              const mainRecipes = recipes.slice(0, 21);
+              const extraRecipes = recipes.slice(21, 42);
               const BASE_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
               const todayIdx = new Date().getDay();
               const dayNames = Array.from({length: 7}, (_, i) => BASE_DAYS[(todayIdx + i) % 7]);
@@ -135,7 +136,7 @@ export async function GET(req: NextRequest) {
 
               const days = dayNames.map((day, di) => {
                 const meals = mealTypes.map((type, mi) => {
-                  const r = recipes[di * 3 + mi];
+                  const r = mainRecipes[di * 3 + mi];
                   const cal = r.nutrition?.nutrients?.find((n: any) => n.name === 'Calories');
                   return {
                     type, id: r.id, title: r.title, image: r.image,
@@ -150,6 +151,19 @@ export async function GET(req: NextRequest) {
 
               // Generate extras for refresh
               const extras: Record<string, any[]> = { breakfast: [], lunch: [], dinner: [] };
+              extraRecipes.forEach((r: any, i: number) => {
+                const type = mealTypes[i % 3];
+                const key = type.toLowerCase();
+                const cal = r.nutrition?.nutrients?.find((n: any) => n.name === 'Calories');
+                extras[key].push({
+                  type, id: r.id, title: r.title, image: r.image,
+                  readyInMinutes: r.readyInMinutes || 15,
+                  calories: cal?.amount || calPerMeal,
+                  ingredients: r.extendedIngredients?.map((ing: any) => ({ name: ing.name, amount: Math.round(ing.amount * 10) / 10, unit: ing.unit })) || [],
+                  steps: r.analyzedInstructions?.[0]?.steps?.map((s: any) => ({ number: s.number, step: s.step })) || [],
+                });
+              });
+              
               return NextResponse.json({ days, extras });
             }
           }
