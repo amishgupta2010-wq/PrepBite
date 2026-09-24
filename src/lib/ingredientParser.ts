@@ -12,15 +12,23 @@ export async function parseIngredientsWithGroq(ingredients: string[]): Promise<P
 
   try {
     const prompt = `
-You are an expert culinary parser for the PrepBite meal prep app.
-Your job is to take raw user grocery/pantry items and distinguish:
-1. Base Whole Ingredients (e.g., "Tomato", "Potato", "Raw Milk", "Chicken")
-2. Processed Condiments & Sauces (e.g., "Tomato Ketchup", "Tomato Paste", "Mayonnaise", "Soy Sauce")
-3. Standardized Name for Spoonacular Search (a comma-separated string of the base ingredients, optionally simplified, e.g. "tomato, potato, milk, chicken").
+You are an expert culinary ingredient parser for the PrepBite meal prep app.
+Given a list of user-provided grocery or pantry items, classify each into:
+
+1. "baseIngredients": Raw, whole ingredients suitable for cooking recipes (e.g., "Tomato", "Chicken Breast", "Rice", "Spinach", "Eggs", "Raw Milk").
+2. "condiments": Processed sauces, seasonings, spreads, or pre-made items (e.g., "Tomato Ketchup", "Soy Sauce", "Mayonnaise", "Peanut Butter").
+3. "searchString": A comma-separated string of ONLY the base ingredients, normalized to simple singular names for Spoonacular API search (e.g., "tomato, chicken, rice, spinach, egg, milk"). Remove brand names, quantities, and unnecessary modifiers.
+
+IMPORTANT RULES:
+- If an item is ambiguous, lean towards "baseIngredients".
+- Fix obvious misspellings (e.g., "tomatoe" → "Tomato", "chiken" → "Chicken").
+- Normalize plural to singular (e.g., "Eggs" → "egg" in searchString).
+- Do NOT include condiments in the searchString.
+- Every input item must appear in EXACTLY one of baseIngredients or condiments.
 
 User Ingredients: ${JSON.stringify(ingredients)}
 
-Return ONLY a clean JSON object with the following schema:
+Return ONLY a clean JSON object:
 {
   "baseIngredients": ["string"],
   "condiments": ["string"],
@@ -35,7 +43,7 @@ Return ONLY a clean JSON object with the following schema:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama3-8b-8192',
+        model: 'llama-3.1-8b-instant',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
         temperature: 0.1,

@@ -98,7 +98,7 @@ export default function LandingPage() {
       <nav className="lp-nav">
         <div className="lp-nav-inner">
           <div className="lp-nav-brand">
-            <img src="/logo.jpg" alt="PrepBite" className="lp-nav-logo" />
+            <img src="/prepbite-logo.png" alt="PrepBite" className="lp-nav-logo" />
             <span className="lp-nav-name">PrepBite</span>
           </div>
           <div className="lp-nav-links">
@@ -250,7 +250,7 @@ export default function LandingPage() {
           </p>
           <div className="lp-hero-actions">
             {isLoggedIn ? (
-              <button className="lp-btn-cta" onClick={() => router.push('/app')}>
+              <button className="lp-btn-cta lp-btn-dashboard" onClick={() => router.push('/app')}>
                 Go to Dashboard →
               </button>
             ) : (
@@ -401,7 +401,7 @@ export default function LandingPage() {
       <footer className="lp-footer">
         <div className="lp-footer-inner">
           <div className="lp-footer-brand">
-            <img src="/logo.jpg" alt="PrepBite" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
+            <img src="/prepbite-logo.png" alt="PrepBite" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
             <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>PrepBite</span>
           </div>
           <p className="lp-footer-copy">© {new Date().getFullYear()} PrepBite. Less prep, better bites.</p>

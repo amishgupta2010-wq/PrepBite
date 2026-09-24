@@ -1627,6 +1627,12 @@ input[type="number"] {
 .lp-nav-link:hover {
   color: var(--text-primary);
 }
+[data-theme='light'] .lp-nav-link {
+  color: #4B5563;
+}
+[data-theme='light'] .lp-nav-link:hover {
+  color: #111827;
+}
 
 /* ─── Shared Buttons ─── */
 .lp-btn-primary {
@@ -1680,6 +1686,14 @@ input[type="number"] {
 .lp-btn-cta:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 32px rgba(255, 215, 0, 0.35);
+}
+.lp-btn-dashboard {
+  background: linear-gradient(135deg, #00E676, #00C853) !important;
+  color: #0A0A0A !important;
+  box-shadow: 0 4px 24px rgba(0, 230, 118, 0.25) !important;
+}
+.lp-btn-dashboard:hover {
+  box-shadow: 0 8px 32px rgba(0, 230, 118, 0.35) !important;
 }
 .lp-btn-ghost {
   background: transparent;

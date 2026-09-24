@@ -260,26 +260,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       👑 Pro Member ✓
                     </div>
                   ) : (
-                    <button
-                      onClick={() => { setShowSettings(false); setShowUpgrade(true); }}
+                    <div
                       style={{
                         width: '100%', position: 'relative',
                         padding: '0.7rem 1rem', borderRadius: '10px',
                         background: 'transparent',
-                        border: '1.5px solid rgba(255,215,0,0.5)',
-                        color: '#FFD700', fontWeight: 600, fontSize: '0.9rem',
-                        cursor: 'pointer', transition: 'all 0.2s ease',
+                        border: '1.5px solid rgba(255,215,0,0.3)',
+                        color: 'rgba(255,215,0,0.6)', fontWeight: 600, fontSize: '0.9rem',
+                        cursor: 'not-allowed',
                         overflow: 'hidden',
-                      }}
-                      onMouseEnter={e => {
-                        (e.target as HTMLElement).style.background = 'rgba(255,215,0,0.08)';
-                        (e.target as HTMLElement).style.borderColor = 'rgba(255,215,0,0.8)';
-                        (e.target as HTMLElement).style.boxShadow = '0 0 20px rgba(255,215,0,0.15)';
-                      }}
-                      onMouseLeave={e => {
-                        (e.target as HTMLElement).style.background = 'transparent';
-                        (e.target as HTMLElement).style.borderColor = 'rgba(255,215,0,0.5)';
-                        (e.target as HTMLElement).style.boxShadow = 'none';
+                        textAlign: 'center',
+                        opacity: 0.7,
                       }}
                     >
                       <span style={{
@@ -289,8 +280,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         padding: '0.15rem 0.5rem',
                         fontSize: '0.65rem', fontWeight: 700, color: '#0A0A0A',
                       }}>👑</span>
-                      Switch to Pro — $5/mo
-                    </button>
+                      Switch to Pro — Coming Soon
+                    </div>
                   )}
                 </div>
 

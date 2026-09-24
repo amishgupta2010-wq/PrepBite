@@ -21,11 +21,20 @@ export default function AuthCallbackPage() {
     if (session?.user?.email) {
       const existingUser = getUserByEmail(session.user.email);
       if (existingUser) {
-        // Returning Google user -> jump straight to Dashboard
+        // Returning Google user -> create a local session so the app recognizes them
+        const sessionData = JSON.stringify({
+          userId: existingUser.id,
+          username: existingUser.username,
+          email: existingUser.email,
+          gender: existingUser.gender,
+        });
+        localStorage.setItem('prepbite-session', sessionData);
+        localStorage.setItem('prepbite-remember-me', 'true');
         router.push('/app');
       } else {
         // New Google user -> detect incomplete profile -> go to onboarding
-        router.push('/onboarding');
+        // Pass a flag so onboarding knows to skip email step
+        router.push('/onboarding?from=google');
       }
     } else {
       router.push('/');
