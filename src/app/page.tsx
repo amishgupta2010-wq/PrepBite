@@ -4,6 +4,7 @@ import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { getSession, loginUser, SessionData } from '../lib/auth';
+import { checkAndActivatePro } from '../lib/proUsers';
 
 export default function LandingPage() {
   const { data: oauthSession } = useSession();
@@ -64,6 +65,8 @@ export default function LandingPage() {
         email: result.user!.email,
         gender: result.user!.gender,
       });
+      // Check if this user is a Pro user
+      checkAndActivatePro(result.user!.email);
     } else {
       setLoginError(result.error || 'Login failed.');
     }
@@ -337,23 +340,7 @@ export default function LandingPage() {
           <div className="lp-badge" style={{ margin: '0 auto 1rem' }}>Pricing</div>
           <h2 className="lp-section-title">Simple, transparent pricing</h2>
           <p className="lp-section-sub">Start free. Upgrade when you need more power.</p>
-          <div className="lp-pricing-grid" style={{ position: 'relative' }}>
-            {/* Overlay */}
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(10, 10, 10, 0.7)',
-              backdropFilter: 'blur(4px)',
-              zIndex: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '24px',
-            }}>
-              <h2 style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-primary)', textAlign: 'center', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
-                (Coming Soon)
-              </h2>
-            </div>
+          <div className="lp-pricing-grid">
             {/* Free tier */}
             <div className="lp-price-card">
               <h3 className="lp-price-name">Free</h3>
@@ -389,8 +376,8 @@ export default function LandingPage() {
                 <li><span className="lp-check">✓</span> Unlimited smart recipe swapping</li>
                 <li><span className="lp-check">✓</span> Auto-add missing ingredients</li>
               </ul>
-              <button className="lp-btn-gold" style={{ width: '100%', opacity: 0.7, cursor: 'not-allowed' }} disabled={true}>
-                Upgrade to Pro (Coming soon)
+              <button className="lp-btn-gold" style={{ width: '100%' }} onClick={handleUpgrade} disabled={checkoutLoading}>
+                {checkoutLoading ? 'Redirecting...' : 'Upgrade to Pro'}
               </button>
             </div>
           </div>

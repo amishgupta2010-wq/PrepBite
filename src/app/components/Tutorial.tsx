@@ -69,10 +69,17 @@ export default function Tutorial() {
     return () => window.removeEventListener('resize', onResize);
   }, [step, updatePosition]);
 
+  const [transitioning, setTransitioning] = useState(false);
+
   const handleNext = () => {
     if (step === null) return;
     if (step < STEPS.length - 1) {
-      setStep(step + 1);
+      setTransitioning(true);
+      // Hide box, then change step, then show after repositioning
+      setTimeout(() => {
+        setStep(step + 1);
+        setTimeout(() => setTransitioning(false), 80);
+      }, 100);
     } else {
       localStorage.setItem('prepbite-tutorial-done', 'true');
       setStep(null);
@@ -103,6 +110,8 @@ export default function Tutorial() {
           bottom: pos.isTopTarget ? undefined : `${winH - pos.y + 8}px`,
           flexDirection: 'column',
           alignItems: 'center',
+          opacity: transitioning ? 0 : 1,
+          transition: 'opacity 0.1s ease',
         }}
       >
         <div className={`tutorial-arrow ${pos.isTopTarget ? 'arrow-up' : 'arrow-down'}`} style={{ 

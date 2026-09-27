@@ -260,17 +260,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       👑 Pro Member ✓
                     </div>
                   ) : (
-                    <div
+                    <button
+                      onClick={() => { setShowSettings(false); setShowUpgrade(true); }}
                       style={{
                         width: '100%', position: 'relative',
                         padding: '0.7rem 1rem', borderRadius: '10px',
                         background: 'transparent',
-                        border: '1.5px solid rgba(255,215,0,0.3)',
-                        color: 'rgba(255,215,0,0.6)', fontWeight: 600, fontSize: '0.9rem',
-                        cursor: 'not-allowed',
+                        border: '1.5px solid rgba(255,215,0,0.5)',
+                        color: '#FFD700', fontWeight: 600, fontSize: '0.9rem',
+                        cursor: 'pointer', transition: 'all 0.2s ease',
                         overflow: 'hidden',
-                        textAlign: 'center',
-                        opacity: 0.7,
+                      }}
+                      onMouseEnter={e => {
+                        (e.target as HTMLElement).style.background = 'rgba(255,215,0,0.08)';
+                        (e.target as HTMLElement).style.borderColor = 'rgba(255,215,0,0.8)';
+                        (e.target as HTMLElement).style.boxShadow = '0 0 20px rgba(255,215,0,0.15)';
+                      }}
+                      onMouseLeave={e => {
+                        (e.target as HTMLElement).style.background = 'transparent';
+                        (e.target as HTMLElement).style.borderColor = 'rgba(255,215,0,0.5)';
+                        (e.target as HTMLElement).style.boxShadow = 'none';
                       }}
                     >
                       <span style={{
@@ -280,8 +289,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         padding: '0.15rem 0.5rem',
                         fontSize: '0.65rem', fontWeight: 700, color: '#0A0A0A',
                       }}>👑</span>
-                      Switch to Pro — Coming Soon
-                    </div>
+                      Switch to Pro — $5/mo
+                    </button>
                   )}
                 </div>
 
@@ -368,8 +377,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowSignOutConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
-                const { logoutUser } = await import('../../lib/auth');
-                logoutUser();
+                // Clear ALL prepbite data from localStorage
+                const keysToRemove: string[] = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i);
+                  if (key && key.startsWith('prepbite-')) keysToRemove.push(key);
+                }
+                keysToRemove.forEach(k => localStorage.removeItem(k));
+                sessionStorage.removeItem('prepbite-session');
+                // Clear NextAuth session
                 const { signOut } = await import('next-auth/react');
                 await signOut({ redirect: false });
                 window.location.href = '/';
@@ -383,12 +399,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {showDeleteConfirm && (
         <div className="tutorial-confirm-overlay" style={{ zIndex: 10000 }}>
           <div className="tutorial-confirm-box">
-            <p style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>We are sad to let you go, you sure you wanna continue?</p>
+            <p style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>
+              {isPro
+                ? 'You might lose your Pro version, are you sure?'
+                : 'We are sad to let you go, you sure you wanna continue?'
+              }
+            </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowDeleteConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
                 const { deleteAccount } = await import('../../lib/auth');
                 deleteAccount();
+                // Clear NextAuth session
                 const { signOut } = await import('next-auth/react');
                 await signOut({ redirect: false });
                 window.location.href = '/';

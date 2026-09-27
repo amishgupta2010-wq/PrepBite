@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import WeightRoller from '../components/WeightRoller';
 import { LANGUAGES, TRANSLATIONS, LanguageCode } from '../lib/translations';
 import { registerUser, loginUser } from '../../lib/auth';
+import { checkAndActivatePro } from '../../lib/proUsers';
 
 type WeightUnit = 'kg' | 'lbs';
 type HeightUnit = 'cm' | 'ft';
@@ -258,6 +259,8 @@ export default function OnboardingPage() {
           await loginUser(data.email, data.password, true);
         }
         localStorage.setItem('prepbite-onboarding', JSON.stringify(data));
+        // Check if this user is a Pro user
+        checkAndActivatePro(data.email);
         router.push('/dashboard');
       } catch (err: any) {
         alert(err.message || 'Registration failed');

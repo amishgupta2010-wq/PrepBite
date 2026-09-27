@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getUserByEmail } from '@/lib/auth';
+import { checkAndActivatePro } from '@/lib/proUsers';
 
 export default function AuthCallbackPage() {
   const { data: session, status } = useSession();
@@ -30,6 +31,8 @@ export default function AuthCallbackPage() {
         });
         localStorage.setItem('prepbite-session', sessionData);
         localStorage.setItem('prepbite-remember-me', 'true');
+        // Check if this user is a Pro user
+        checkAndActivatePro(session.user.email);
         router.push('/app');
       } else {
         // New Google user -> detect incomplete profile -> go to onboarding
