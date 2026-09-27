@@ -163,17 +163,39 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )}
           </div>
           
-          {/* User Avatar */}
-          <div style={{
-            width: '32px', height: '32px', borderRadius: '50%',
-            background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            overflow: 'hidden'
-          }}>
-            {session?.user?.image ? (
-              <img src={session.user.image} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <span style={{ fontSize: '1.25rem' }}>👤</span>
-            )}
+          {/* User Avatar & Name */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{
+              width: '32px', height: '32px', borderRadius: '50%',
+              background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden',
+              border: isPro ? '2.5px solid #00E676' : 'none',
+              boxSizing: 'content-box'
+            }}>
+              {session?.user?.image ? (
+                <img src={session.user.image} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <span style={{ fontSize: '1.25rem' }}>👤</span>
+              )}
+            </div>
+            
+            <div style={{ display: 'none' }} className="header-username">
+              <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                {userData?.name || session?.user?.name || 'User'}
+              </span>
+              {isPro && (
+                <span style={{
+                  background: '#00E676',
+                  color: '#0A0A0A',
+                  padding: '0.1rem 0.4rem',
+                  borderRadius: '6px',
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  marginLeft: '0.4rem'
+                }}>Pro</span>
+              )}
+            </div>
           </div>
 
           <button
@@ -385,10 +407,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 }
                 keysToRemove.forEach(k => localStorage.removeItem(k));
                 sessionStorage.removeItem('prepbite-session');
-                // Clear NextAuth session
+                // Clear NextAuth session and redirect securely
                 const { signOut } = await import('next-auth/react');
-                await signOut({ redirect: false });
-                window.location.href = '/';
+                await signOut({ callbackUrl: '/' });
               }}>Yep!</button>
             </div>
           </div>
@@ -410,10 +431,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <button className="tutorial-btn-yep" onClick={async () => {
                 const { deleteAccount } = await import('../../lib/auth');
                 deleteAccount();
-                // Clear NextAuth session
+                // Clear NextAuth session and redirect securely
                 const { signOut } = await import('next-auth/react');
-                await signOut({ redirect: false });
-                window.location.href = '/';
+                await signOut({ callbackUrl: '/' });
               }}>Yep!</button>
             </div>
           </div>

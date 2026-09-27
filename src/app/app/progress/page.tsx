@@ -62,11 +62,17 @@ export default function ProgressPage() {
     }
   };
 
-  const todayDate = new Date();
-  const currentMonth = todayDate.getMonth();
-  const currentYear = todayDate.getFullYear();
+  const [displayDate, setDisplayDate] = useState(new Date());
+
+  const currentMonth = displayDate.getMonth();
+  const currentYear = displayDate.getFullYear();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  
+  const todayDate = new Date();
   const todayStr = todayDate.toISOString().split('T')[0];
+
+  const handlePrevMonth = () => setDisplayDate(new Date(currentYear, currentMonth - 1, 1));
+  const handleNextMonth = () => setDisplayDate(new Date(currentYear, currentMonth + 1, 1));
 
   const getDayRecipes = () => {
     if (!mealPlan?.days || !selectedDate) return null;
@@ -216,8 +222,10 @@ export default function ProgressPage() {
         {/* Calendar */}
         <h2 className="heading-md" style={{ marginBottom: '1rem' }}>Calendar</h2>
         <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-          <div style={{ textAlign: 'center', marginBottom: '1rem', fontWeight: 600 }}>
-            {new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long', year: 'numeric' })}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', fontWeight: 600 }}>
+            <button onClick={handlePrevMonth} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '1.2rem' }}>&larr;</button>
+            <div>{new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long', year: 'numeric' })}</div>
+            <button onClick={handleNextMonth} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '1.2rem' }}>&rarr;</button>
           </div>
           <div className="calendar-grid">
             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
