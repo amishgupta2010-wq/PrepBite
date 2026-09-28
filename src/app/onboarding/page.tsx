@@ -71,7 +71,7 @@ function convertWeight(value: number, from: WeightUnit, to: WeightUnit): number 
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const totalSteps = 8;
+  const totalSteps = 7; // Language, Username, Gender, Body, Exercise, Timeline, Referral
 
   const [data, setData] = useState<OnboardingData>({
     language: 'en',
@@ -179,14 +179,10 @@ export default function OnboardingPage() {
 
   const isStepValid = useMemo(() => {
     switch (step) {
-      case 1: return true;
-      case 2:
-        if (oauthSession) return true;
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(data.email) && data.password.length >= 8 && data.password === data.confirmPassword;
-      case 3: return data.name.trim().length >= 2 && data.name.trim().length <= 30;
-      case 4: return data.gender !== null;
-      case 5: {
+      case 1: return true; // Language
+      case 2: return data.name.trim().length >= 2 && data.name.trim().length <= 30; // Username
+      case 3: return data.gender !== null; // Gender
+      case 4: { // Body stats
         const wb = getWeightBounds(data.weightUnit);
         const hb = getHeightBounds(data.heightUnit);
         const gainLimit = data.weightUnit === 'kg' ? 50 : 110;
@@ -196,49 +192,35 @@ export default function OnboardingPage() {
                data.currentHeight >= hb.min && data.currentHeight <= hb.max &&
                isSafeGain;
       }
-      case 6: return data.exerciseDays !== null;
-      case 7:
+      case 5: return data.exerciseDays !== null; // Exercise
+      case 6: // Timeline
         if (!data.timelinePreset) return false;
         if (data.timelinePreset === 'other') {
           if (!data.customTimeValue || parseFloat(data.customTimeValue) <= 0) return false;
         }
         return timelineValidation.valid;
-      case 8: return data.referralSource !== null;
+      case 7: return data.referralSource !== null; // Referral
       default: return false;
     }
-  }, [step, data, timelineValidation, oauthSession]);
+  }, [step, data, timelineValidation]);
 
   useEffect(() => {
     if (oauthSession?.user) {
-      if (!data.email) {
-        setData(prev => ({ 
-          ...prev, 
-          email: oauthSession.user!.email || '', 
-          name: oauthSession.user!.name || '' 
-        }));
-      }
-      if (step === 2) setStep(3);
+      setData(prev => ({
+        ...prev,
+        email: oauthSession.user!.email || prev.email,
+        name: prev.name || oauthSession.user!.name || ''
+      }));
     }
-  }, [oauthSession, step, data.email]);
+  }, [oauthSession]);
 
   const handleNext = async () => {
     if (!isStepValid) return;
     
     setEmailError('');
     setUsernameError('');
-    
-    if (step === 2 && !oauthSession) {
-      const usersStr = localStorage.getItem('prepbite-users');
-      if (usersStr) {
-        const users = JSON.parse(usersStr);
-        if (users.some((u: any) => u.email.toLowerCase() === data.email.toLowerCase())) {
-          setEmailError('Email already in use');
-          return;
-        }
-      }
-    }
-    
-    if (step === 3) {
+
+    if (step === 2) {
       const usersStr = localStorage.getItem('prepbite-users');
       if (usersStr) {
         const users = JSON.parse(usersStr);
@@ -254,13 +236,11 @@ export default function OnboardingPage() {
     } else {
       try {
         const isOAuth = !!oauthSession;
-        await registerUser(data.name.trim(), data.email, data.password, data.gender || 'other', isOAuth);
-        if (!isOAuth) {
-          await loginUser(data.email, data.password, true);
-        }
-        localStorage.setItem('prepbite-onboarding', JSON.stringify(data));
-        // Check if this user is a Pro user
-        checkAndActivatePro(data.email);
+        // For OAuth users, email comes from their Google session
+        const email = isOAuth ? (oauthSession?.user?.email || data.email) : data.email;
+        await registerUser(data.name.trim(), email, data.password, data.gender || 'other', isOAuth);
+        localStorage.setItem('prepbite-onboarding', JSON.stringify({ ...data, email }));
+        checkAndActivatePro(email);
         router.push('/dashboard');
       } catch (err: any) {
         alert(err.message || 'Registration failed');
@@ -269,10 +249,7 @@ export default function OnboardingPage() {
   };
 
   const handleBack = () => {
-    if (step > 1) {
-      if (oauthSession && step === 3) setStep(1);
-      else setStep(step - 1);
-    }
+    if (step > 1) setStep(step - 1);
   };
 
   const presetTimelines = [
@@ -333,59 +310,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 2: Account Credentials */}
+        {/* Step 2: Username (was step 3) */}
         {step === 2 && (
-          <div className="animate-slide-up">
-            <h2 className="step-question">Account Credentials</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
-              {!oauthSession && (
-                <div>
-                  <input 
-                    className="input" 
-                    type="email" 
-                    placeholder="Email address" 
-                    value={data.email} 
-                    onChange={(e) => setData({ ...data, email: e.target.value })} 
-                  />
-                  {emailError && <p style={{ color: '#FF4757', fontSize: '0.875rem', marginTop: '0.5rem' }}>{emailError}</p>}
-                  {data.email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && <p style={{ color: '#FF4757', fontSize: '0.875rem', marginTop: '0.5rem' }}>Invalid email format</p>}
-                </div>
-              )}
-              <div style={{ position: 'relative' }}>
-                <input 
-                  className="input" 
-                  type={showPassword ? 'text' : 'password'} 
-                  placeholder="Password" 
-                  value={data.password} 
-                  onChange={(e) => setData({ ...data, password: e.target.value })} 
-                  style={{ paddingRight: '2.5rem' }}
-                />
-                <button 
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer' }}
-                >
-                  {showPassword ? '👁️' : '🙈'}
-                </button>
-                {data.password.length > 0 && data.password.length < 8 && <p style={{ color: '#FF4757', fontSize: '0.875rem', marginTop: '0.5rem' }}>Password must be at least 8 characters</p>}
-              </div>
-              <div style={{ position: 'relative' }}>
-                <input 
-                  className="input" 
-                  type={showPassword ? 'text' : 'password'} 
-                  placeholder="Confirm Password" 
-                  value={data.confirmPassword} 
-                  onChange={(e) => setData({ ...data, confirmPassword: e.target.value })} 
-                  style={{ paddingRight: '2.5rem' }}
-                />
-                {data.confirmPassword.length > 0 && data.password !== data.confirmPassword && <p style={{ color: '#FF4757', fontSize: '0.875rem', marginTop: '0.5rem' }}>Passwords do not match</p>}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Username */}
-        {step === 3 && (
           <div className="animate-slide-up">
             <h2 className="step-question">Choose a username</h2>
             <p className="text-body" style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>{t.name_desc}</p>
@@ -395,8 +321,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 4: Gender */}
-        {step === 4 && (
+        {/* Step 3: Gender */}
+        {step === 3 && (
           <div className="animate-slide-up">
             <h2 className="step-question">Gender</h2>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '2rem' }}>
@@ -418,8 +344,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 5: Weight + Height */}
-        {step === 5 && (
+        {/* Step 4: Weight + Height */}
+        {step === 4 && (
           <div className="animate-slide-up">
             <h2 className="step-question">{t.what_weight}</h2>
 
@@ -467,8 +393,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 6: Exercise */}
-        {step === 6 && (
+        {/* Step 5: Exercise */}
+        {step === 5 && (
           <div className="animate-slide-up">
             <h2 className="step-question">{t.how_many_days}</h2>
             <p className="text-body" style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>{t.exercise_desc}</p>
@@ -482,8 +408,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 7: Timeline */}
-        {step === 7 && (
+        {/* Step 6: Timeline */}
+        {step === 6 && (
           <div className="animate-slide-up">
             <h2 className="step-question">{t.how_much_time}</h2>
             <p className="text-body" style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>{t.time_desc}</p>
@@ -514,8 +440,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 8: Referral */}
-        {step === 8 && (
+        {/* Step 7: Referral */}
+        {step === 7 && (
           <div className="animate-slide-up">
             <h2 className="step-question">{t.how_hear}</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>

@@ -8,6 +8,7 @@ import { getSession } from '../../lib/auth';
 import Tutorial from '../components/Tutorial';
 import UpgradeModal from '../components/UpgradeModal';
 import { isBetaTester } from '../../lib/betaTester';
+import { handleSignOut } from '../actions/auth';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -186,13 +187,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </span>
               {isPro && (
                 <span style={{
-                  background: '#10B981',
+                  background: 'linear-gradient(135deg, #F59E0B, #D97706)',
                   color: '#000000',
-                  padding: '0.125rem 0.5rem', /* py-0.5 px-2 */
-                  borderRadius: '0.375rem', /* rounded-md */
-                  fontSize: '0.75rem', /* text-xs */
+                  padding: '0.125rem 0.5rem',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.75rem',
                   fontWeight: 'bold',
-                  marginLeft: '0.4rem'
+                  marginLeft: '0.4rem',
+                  boxShadow: '0 0 6px rgba(245, 158, 11, 0.4)'
                 }}>Pro</span>
               )}
             </div>
@@ -398,20 +400,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <p style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>You sure you wanna sign out?</p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowSignOutConfirm(false)}>Nah!</button>
-              <button className="tutorial-btn-yep" onClick={async () => {
-                // Clear ALL prepbite data from localStorage
+              <form action={async () => {
+                // Purge local storage first
                 const keysToRemove: string[] = [];
                 for (let i = 0; i < localStorage.length; i++) {
                   const key = localStorage.key(i);
                   if (key && key.startsWith('prepbite-')) keysToRemove.push(key);
                 }
                 keysToRemove.forEach(k => localStorage.removeItem(k));
-                sessionStorage.removeItem('prepbite-session');
-                // Clear NextAuth session and force a hard redirect to clear router cache
-                const { signOut } = await import('next-auth/react');
-                await signOut({ redirect: false });
-                window.location.href = '/';
-              }}>Yep!</button>
+                sessionStorage.clear();
+                // Server action clears the cookie & redirects
+                await handleSignOut();
+              }}>
+                <button type="submit" className="tutorial-btn-yep">Yep!</button>
+              </form>
             </div>
           </div>
         </div>
@@ -430,12 +432,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowDeleteConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
+                // Delete local account data
                 const { deleteAccount } = await import('../../lib/auth');
                 deleteAccount();
-                // Clear NextAuth session and force a hard redirect to clear router cache
-                const { signOut } = await import('next-auth/react');
-                await signOut({ redirect: false });
-                window.location.href = '/';
+                // Call server-side endpoint to expire all auth cookies
+                await fetch('/api/user/delete', { method: 'DELETE', body: JSON.stringify({}) });
+                // Hard redirect — do NOT use router.push so cookies are re-read from scratch
+                window.location.replace('/');
               }}>Yep!</button>
             </div>
           </div>
