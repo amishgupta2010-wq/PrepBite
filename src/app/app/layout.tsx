@@ -169,7 +169,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               width: '32px', height: '32px', borderRadius: '50%',
               background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
               overflow: 'hidden',
-              border: isPro ? '2.5px solid #00E676' : 'none',
+              border: isPro ? '3px solid #10B981' : 'none',
+              boxShadow: isPro ? '0 0 10px rgba(16, 185, 129, 0.4)' : 'none',
               boxSizing: 'content-box'
             }}>
               {session?.user?.image ? (
@@ -185,13 +186,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </span>
               {isPro && (
                 <span style={{
-                  background: '#00E676',
-                  color: '#0A0A0A',
-                  padding: '0.1rem 0.4rem',
-                  borderRadius: '6px',
-                  fontSize: '0.65rem',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
+                  background: '#10B981',
+                  color: '#000000',
+                  padding: '0.125rem 0.5rem', /* py-0.5 px-2 */
+                  borderRadius: '0.375rem', /* rounded-md */
+                  fontSize: '0.75rem', /* text-xs */
+                  fontWeight: 'bold',
                   marginLeft: '0.4rem'
                 }}>Pro</span>
               )}
@@ -407,9 +407,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 }
                 keysToRemove.forEach(k => localStorage.removeItem(k));
                 sessionStorage.removeItem('prepbite-session');
-                // Clear NextAuth session and redirect securely
+                // Clear NextAuth session and force a hard redirect to clear router cache
                 const { signOut } = await import('next-auth/react');
-                await signOut({ callbackUrl: '/' });
+                await signOut({ redirect: false });
+                window.location.href = '/';
               }}>Yep!</button>
             </div>
           </div>
@@ -431,9 +432,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <button className="tutorial-btn-yep" onClick={async () => {
                 const { deleteAccount } = await import('../../lib/auth');
                 deleteAccount();
-                // Clear NextAuth session and redirect securely
+                // Clear NextAuth session and force a hard redirect to clear router cache
                 const { signOut } = await import('next-auth/react');
-                await signOut({ callbackUrl: '/' });
+                await signOut({ redirect: false });
+                window.location.href = '/';
               }}>Yep!</button>
             </div>
           </div>

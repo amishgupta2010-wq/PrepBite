@@ -139,69 +139,7 @@ export default function LandingPage() {
               Welcome back
             </h4>
 
-            <div className="lp-input-group">
-              <input
-                className="lp-input"
-                type="text"
-                placeholder="Email or Username"
-                value={loginId}
-                onChange={e => { setLoginId(e.target.value); setLoginError(''); }}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                autoFocus
-              />
-            </div>
-
-            <div className="lp-input-group" style={{ position: 'relative' }}>
-              <input
-                className="lp-input"
-                type={showPw ? 'text' : 'password'}
-                placeholder="Password"
-                value={loginPw}
-                onChange={e => { setLoginPw(e.target.value); setLoginError(''); }}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                style={{ paddingRight: '2.5rem' }}
-              />
-              <button
-                onClick={() => setShowPw(!showPw)}
-                className="lp-pw-toggle"
-                type="button"
-                tabIndex={-1}
-              >
-                {showPw ? '👁️' : '🙈'}
-              </button>
-            </div>
-
-            <label className="lp-remember" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={e => setRememberMe(e.target.checked)}
-                style={{ accentColor: 'var(--accent)', width: '16px', height: '16px' }}
-              />
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Remember me</span>
-            </label>
-
-            {loginError && (
-              <p style={{ color: '#FF4757', fontSize: '0.82rem', marginBottom: '0.75rem', fontWeight: 500 }}>
-                {loginError}
-              </p>
-            )}
-
-            <button
-              className="lp-btn-primary"
-              style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem', marginBottom: '1rem' }}
-              onClick={handleLogin}
-              disabled={loginLoading}
-            >
-              {loginLoading ? 'Signing in...' : 'Sign In'}
-            </button>
-
-            {/* Divider */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>or</span>
-              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-            </div>
+            {/* Google OAuth button only */}
 
             {/* Google OAuth button */}
             <button
