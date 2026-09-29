@@ -22,6 +22,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
+      // Allow sign-out redirects to go to "/" (or wherever specified)
+      if (url === '/' || url === baseUrl || url === `${baseUrl}/`) return '/';
+      // For OAuth sign-in, always land on auth-callback
       return `${baseUrl}/auth-callback`;
     },
   },

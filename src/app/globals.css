@@ -1599,8 +1599,9 @@ input[type="number"] {
 .lp-nav-logo {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  object-fit: cover;
+  border-radius: 0;
+  object-fit: contain;
+  background: transparent;
 }
 .lp-nav-name {
   font-family: var(--font-heading);
@@ -1617,21 +1618,27 @@ input[type="number"] {
 .lp-nav-link {
   background: none;
   border: none;
-  color: var(--text-secondary);
+  color: var(--accent);
   font-family: var(--font-body);
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: color 0.2s ease;
 }
 .lp-nav-link:hover {
-  color: var(--text-primary);
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+[data-theme='light'] .lp-nav {
+  background: rgba(236, 253, 245, 0.92);
+  border-bottom-color: rgba(16, 185, 129, 0.2);
 }
 [data-theme='light'] .lp-nav-link {
-  color: #4B5563;
+  color: #1F2937;
+  font-weight: 600;
 }
 [data-theme='light'] .lp-nav-link:hover {
-  color: #111827;
+  color: #059669;
 }
 
 /* ─── Shared Buttons ─── */
@@ -1674,18 +1681,18 @@ input[type="number"] {
   padding: 0.85rem 2rem;
   border-radius: var(--radius);
   border: none;
-  background: linear-gradient(135deg, #FFD700, #FFA500);
+  background: linear-gradient(135deg, #00E676, #00C853);
   color: #0A0A0A;
   font-family: var(--font-heading);
   font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.25s ease;
-  box-shadow: 0 4px 24px rgba(255, 215, 0, 0.25);
+  box-shadow: 0 4px 24px rgba(0, 230, 118, 0.25);
 }
 .lp-btn-cta:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(255, 215, 0, 0.35);
+  box-shadow: 0 8px 32px rgba(0, 230, 118, 0.4);
 }
 .lp-btn-dashboard {
   background: linear-gradient(135deg, #00E676, #00C853) !important;
@@ -2365,3 +2372,9 @@ input[type="number"] {
 }
 
 @media (min-width: 480px) { .header-username { display: flex !important; align-items: center; } }
+
+
+/* --- Light Mode: Dashboard Header --- */
+[data-theme='light'] header { background: rgba(236, 253, 245, 0.95) !important; border-bottom: 1px solid rgba(5, 150, 105, 0.2); backdrop-filter: blur(12px); }
+[data-theme='light'] .lp-hero { background: linear-gradient(160deg, #F0FDF4 0%, #ECFDF5 40%, #F9FAFB 100%); }
+[data-theme='light'] .lp-section-alt { background: #F0FDF4; }

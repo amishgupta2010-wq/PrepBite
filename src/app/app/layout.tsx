@@ -145,7 +145,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             ←
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, fontSize: '1.25rem', color: 'var(--accent)', letterSpacing: '-0.5px' }}>
-            <img src="/logo.jpg" alt="PrepBite Logo" style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'cover' }} />
+            <img src="/prepbite-logo.png" alt="PrepBite Logo" style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'contain', background: 'transparent' }} />
             PrepBite
           </div>
         </div>
@@ -170,8 +170,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               width: '32px', height: '32px', borderRadius: '50%',
               background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
               overflow: 'hidden',
-              border: isPro ? '3px solid #10B981' : 'none',
-              boxShadow: isPro ? '0 0 10px rgba(16, 185, 129, 0.4)' : 'none',
+              border: isPro ? '4px solid #10B981' : 'none',
+              boxShadow: isPro ? '0 0 14px rgba(16, 185, 129, 0.6), 0 0 4px rgba(16, 185, 129, 0.4)' : 'none',
               boxSizing: 'content-box'
             }}>
               {session?.user?.image ? (
@@ -187,14 +187,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </span>
               {isPro && (
                 <span style={{
-                  background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                  color: '#000000',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  color: '#F59E0B',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
                   padding: '0.125rem 0.5rem',
                   borderRadius: '0.375rem',
                   fontSize: '0.75rem',
                   fontWeight: 'bold',
                   marginLeft: '0.4rem',
-                  boxShadow: '0 0 6px rgba(245, 158, 11, 0.4)'
+                  textShadow: '0 0 8px rgba(245, 158, 11, 0.3)'
                 }}>Pro</span>
               )}
             </div>

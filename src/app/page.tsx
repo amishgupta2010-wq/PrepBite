@@ -18,10 +18,12 @@ export default function LandingPage() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [customSession, setCustomSession] = useState<SessionData | null>(null);
+  const [isPro, setIsPro] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setCustomSession(getSession());
+    setIsPro(localStorage.getItem('prepbite-is-pro') === 'true');
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       if (searchParams.get('login') === 'true') {
@@ -195,7 +197,7 @@ export default function LandingPage() {
                 Go to Dashboard →
               </button>
             ) : (
-              <button className="lp-btn-cta" onClick={() => router.push('/onboarding')}>
+              <button className="lp-btn-cta lp-btn-dashboard" onClick={() => router.push('/onboarding')}>
                 Start Planning Free
               </button>
             )}
@@ -272,53 +274,76 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── PRICING ─── */}
       <section className="lp-section lp-section-alt" id="pricing">
         <div className="lp-section-inner">
           <div className="lp-badge" style={{ margin: '0 auto 1rem' }}>Pricing</div>
           <h2 className="lp-section-title">Simple, transparent pricing</h2>
           <p className="lp-section-sub">Start free. Upgrade when you need more power.</p>
-          <div className="lp-pricing-grid">
-            {/* Free tier */}
-            <div className="lp-price-card">
-              <h3 className="lp-price-name">Free</h3>
-              <div className="lp-price-amount">
-                <span className="lp-price-dollar">$0</span>
-                <span className="lp-price-period">/month</span>
-              </div>
-              <ul className="lp-price-features">
-                <li><span className="lp-check">✓</span> 3 meal plan generations / month</li>
-                <li><span className="lp-cross">✕</span> Recipe swapping</li>
-                <li><span className="lp-cross">✕</span> Auto grocery list sync</li>
-              </ul>
-              {isLoggedIn ? (
-                <button className="lp-btn-outline" style={{ width: '100%' }} onClick={() => router.push('/app')}>
-                  Current Plan
+
+          {isPro ? (
+            /* Pro user: show benefits + thank-you */
+            <div style={{ maxWidth: '520px', margin: '0 auto', textAlign: 'center' }}>
+              <div className="lp-price-card lp-price-pro" style={{ marginBottom: '1.5rem' }}>
+                <div className="lp-price-badge">👑 YOUR PLAN</div>
+                <h3 className="lp-price-name lp-gradient-text">Pro</h3>
+                <ul className="lp-price-features" style={{ textAlign: 'left' }}>
+                  <li><span className="lp-check">✓</span> Unlimited meal plan generations</li>
+                  <li><span className="lp-check">✓</span> Unlimited smart recipe swapping</li>
+                  <li><span className="lp-check">✓</span> Auto-add missing ingredients</li>
+                  <li><span className="lp-check">✓</span> Priority support</li>
+                </ul>
+                <button className="lp-btn-dashboard" style={{ width: '100%', padding: '0.85rem', borderRadius: 'var(--radius)', border: 'none', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }} onClick={() => router.push('/app')}>
+                  Go to Dashboard →
                 </button>
-              ) : (
-                <button className="lp-btn-outline" style={{ width: '100%' }} onClick={() => router.push('/onboarding')}>
-                  Get Started Free
-                </button>
-              )}
-            </div>
-            {/* Pro tier */}
-            <div className="lp-price-card lp-price-pro">
-              <div className="lp-price-badge">👑 BEST VALUE</div>
-              <h3 className="lp-price-name lp-gradient-text">Pro</h3>
-              <div className="lp-price-amount">
-                <span className="lp-price-dollar">$5</span>
-                <span className="lp-price-period">/month</span>
               </div>
-              <ul className="lp-price-features">
-                <li><span className="lp-check">✓</span> Unlimited meal plan generations</li>
-                <li><span className="lp-check">✓</span> Unlimited smart recipe swapping</li>
-                <li><span className="lp-check">✓</span> Auto-add missing ingredients</li>
-              </ul>
-              <button className="lp-btn-gold" style={{ width: '100%' }} onClick={handleUpgrade} disabled={checkoutLoading}>
-                {checkoutLoading ? 'Redirecting...' : 'Upgrade to Pro'}
-              </button>
+              <p style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--accent)', marginTop: '1rem' }}>
+                🙏 Thank you for choosing the Pro version!
+              </p>
             </div>
-          </div>
+          ) : (
+            /* Free user: show normal pricing grid */
+            <div className="lp-pricing-grid">
+              {/* Free tier */}
+              <div className="lp-price-card">
+                <h3 className="lp-price-name">Free</h3>
+                <div className="lp-price-amount">
+                  <span className="lp-price-dollar">$0</span>
+                  <span className="lp-price-period">/month</span>
+                </div>
+                <ul className="lp-price-features">
+                  <li><span className="lp-check">✓</span> 3 meal plan generations / month</li>
+                  <li><span className="lp-cross">✕</span> Recipe swapping</li>
+                  <li><span className="lp-cross">✕</span> Auto grocery list sync</li>
+                </ul>
+                {isLoggedIn ? (
+                  <button className="lp-btn-outline" style={{ width: '100%' }} onClick={() => router.push('/app')}>
+                    Current Plan
+                  </button>
+                ) : (
+                  <button className="lp-btn-outline" style={{ width: '100%' }} onClick={() => router.push('/onboarding')}>
+                    Get Started Free
+                  </button>
+                )}
+              </div>
+              {/* Pro tier */}
+              <div className="lp-price-card lp-price-pro">
+                <div className="lp-price-badge">👑 BEST VALUE</div>
+                <h3 className="lp-price-name lp-gradient-text">Pro</h3>
+                <div className="lp-price-amount">
+                  <span className="lp-price-dollar">$5</span>
+                  <span className="lp-price-period">/month</span>
+                </div>
+                <ul className="lp-price-features">
+                  <li><span className="lp-check">✓</span> Unlimited meal plan generations</li>
+                  <li><span className="lp-check">✓</span> Unlimited smart recipe swapping</li>
+                  <li><span className="lp-check">✓</span> Auto-add missing ingredients</li>
+                </ul>
+                <button className="lp-btn-gold" style={{ width: '100%' }} onClick={handleUpgrade} disabled={checkoutLoading}>
+                  {checkoutLoading ? 'Redirecting...' : 'Upgrade to Pro'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
