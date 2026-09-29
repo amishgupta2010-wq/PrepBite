@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ThemeProvider from "./components/ThemeProvider";
-import SettingsModal from "./components/SettingsModal";
+
 import { SessionProvider } from "next-auth/react";
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -32,7 +32,6 @@ export default function RootLayout({
         <ErrorBoundary>
           <SessionProvider>
             <ThemeProvider>
-              <SettingsModal />
               {children}
             </ThemeProvider>
           </SessionProvider>

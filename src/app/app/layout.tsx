@@ -9,6 +9,7 @@ import Tutorial from '../components/Tutorial';
 import UpgradeModal from '../components/UpgradeModal';
 import { isBetaTester } from '../../lib/betaTester';
 import { handleSignOut } from '../actions/auth';
+import { useTheme } from '../components/ThemeProvider';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -17,7 +18,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   
   const [showBadge, setShowBadge] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [isLightMode, setIsLightMode] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const isLightMode = theme === 'light';
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -42,10 +44,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const badge = localStorage.getItem('prepbite-shopping-badge');
     setShowBadge(badge === 'true');
 
-    const theme = localStorage.getItem('prepbite-theme');
     if (theme === 'light') {
-      setIsLightMode(true);
       document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
     }
     
     const ob = JSON.parse(localStorage.getItem('prepbite-onboarding') || '{}');
@@ -90,17 +92,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [pathname, status, router]);
 
-  const toggleTheme = () => {
-    const next = !isLightMode;
-    setIsLightMode(next);
-    if (next) {
-      document.documentElement.setAttribute('data-theme', 'light');
-      localStorage.setItem('prepbite-theme', 'light');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('prepbite-theme', 'dark');
-    }
-  };
 
   const handleReplayTutorial = () => {
     localStorage.removeItem('prepbite-tutorial-done');
@@ -187,15 +178,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </span>
               {isPro && (
                 <span style={{
-                  background: 'rgba(16, 185, 129, 0.15)',
+                  background: '#10B981',
                   color: '#F59E0B',
-                  border: '1px solid rgba(16, 185, 129, 0.4)',
                   padding: '0.125rem 0.5rem',
                   borderRadius: '0.375rem',
                   fontSize: '0.75rem',
                   fontWeight: 'bold',
                   marginLeft: '0.4rem',
-                  textShadow: '0 0 8px rgba(245, 158, 11, 0.3)'
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
                 }}>Pro</span>
               )}
             </div>

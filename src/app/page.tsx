@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { getSession, loginUser, SessionData } from '../lib/auth';
 import { checkAndActivatePro } from '../lib/proUsers';
+import SettingsModal from './components/SettingsModal';
 
 export default function LandingPage() {
   const { data: oauthSession } = useSession();
@@ -99,6 +100,7 @@ export default function LandingPage() {
 
   return (
     <div className="lp">
+      <SettingsModal />
       {/* ─── NAVBAR ─── */}
       <nav className="lp-nav">
         <div className="lp-nav-inner">

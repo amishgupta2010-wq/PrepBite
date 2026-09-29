@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getUserByEmail } from '@/lib/auth';
+import { getUserByEmail, registerUser } from '@/lib/auth';
 import { checkAndActivatePro } from '@/lib/proUsers';
 
 export default function AuthCallbackPage() {
@@ -20,9 +20,11 @@ export default function AuthCallbackPage() {
     }
 
     if (session?.user?.email) {
-      const existingUser = getUserByEmail(session.user.email);
+      const email = session.user.email;
+      let existingUser = getUserByEmail(email);
+
       if (existingUser) {
-        // Returning Google user -> create a local session so the app recognizes them
+        // Returning user found in localStorage → restore session and go to app
         const sessionData = JSON.stringify({
           userId: existingUser.id,
           username: existingUser.username,
@@ -31,13 +33,40 @@ export default function AuthCallbackPage() {
         });
         localStorage.setItem('prepbite-session', sessionData);
         localStorage.setItem('prepbite-remember-me', 'true');
-        // Check if this user is a Pro user
-        checkAndActivatePro(session.user.email);
-        router.push('/app');
+        checkAndActivatePro(email);
+        router.replace('/app');
       } else {
-        // New Google user -> detect incomplete profile -> go to onboarding
-        // Pass a flag so onboarding knows to skip email step
-        router.push('/onboarding?from=google');
+        // Check if they have onboarding data stored (profile set up but users array missing/cleared)
+        const onboardingRaw = localStorage.getItem('prepbite-onboarding');
+        if (onboardingRaw) {
+          try {
+            const ob = JSON.parse(onboardingRaw);
+            // They completed onboarding before — re-register silently and go to app
+            if (ob.email === email || ob.name) {
+              const name = ob.name || session.user.name || email.split('@')[0];
+              const gender = ob.gender || 'other';
+              // Register them again (won't fail since they don't exist in the array)
+              registerUser(name, email, '', gender, true).then((result) => {
+                const user = result.user;
+                if (user) {
+                  localStorage.setItem('prepbite-session', JSON.stringify({
+                    userId: user.id,
+                    username: user.username,
+                    email: user.email,
+                    gender: user.gender,
+                  }));
+                  localStorage.setItem('prepbite-remember-me', 'true');
+                }
+                checkAndActivatePro(email);
+                router.replace('/app');
+              });
+              return;
+            }
+          } catch {}
+        }
+
+        // Truly new Google user → go to onboarding (skip email step)
+        router.replace('/onboarding?from=google');
       }
     } else {
       router.push('/');
@@ -62,7 +91,7 @@ export default function AuthCallbackPage() {
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }} />
-        <p>Checking profile...</p>
+        <p>Signing you in...</p>
       </div>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
