@@ -240,6 +240,21 @@ export default function OnboardingPage() {
         const email = isOAuth ? (oauthSession?.user?.email || data.email) : data.email;
         await registerUser(data.name.trim(), email, data.password, data.gender || 'other', isOAuth);
         localStorage.setItem('prepbite-onboarding', JSON.stringify({ ...data, email }));
+        
+        // Fire email after successful account setup
+        fetch('/api/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'ONBOARDING_REFERRAL',
+            payload: {
+              name: data.name.trim(),
+              email: email,
+              referral: data.referralSource === 'other' ? data.customReferral : data.referralSource
+            }
+          })
+        }).catch(console.error);
+
         checkAndActivatePro(email);
         router.push('/dashboard');
       } catch (err: any) {
@@ -266,6 +281,7 @@ export default function OnboardingPage() {
     { key: 'ai', label: t.ai },
     { key: 'google', label: t.google },
     { key: 'reddit', label: 'Reddit' },
+    { key: 'producthunt', label: 'Product Hunt' },
   ];
 
   return (

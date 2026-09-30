@@ -7,6 +7,21 @@ import { getSession, loginUser, SessionData } from '../lib/auth';
 import { checkAndActivatePro } from '../lib/proUsers';
 import SettingsModal from './components/SettingsModal';
 
+const FAQ_DATA = [
+  {
+    q: 'Can I change my weight, username, and details later on?',
+    a: 'Yes! You can absolutely change few details later on in account settings after setting up your account!'
+  },
+  {
+    q: 'How will this app help me in my daily life, fitness, weight loss/gain journey?',
+    a: 'It will generate an entire week plan for your meals with their recipes with clear calorie count based on your details and available ingredients so that you dont stress out on what to eat next! it also has a checklist feature so you can keep track of when you missed a meal or exercise!'
+  },
+  {
+    q: 'Is buying the Pro version worth it?',
+    a: 'Absolutely! You get UNLIMITED Week plan generations! UNLIMITED Recipe Swaps! and AUTOMATED Shopping Cart to instantly know which ingredients you should buy next! It gives you all those features for just 5$/month! All the features you need for your journey!'
+  }
+];
+
 export default function LandingPage() {
   const { data: oauthSession } = useSession();
   const router = useRouter();
@@ -21,6 +36,19 @@ export default function LandingPage() {
   const [customSession, setCustomSession] = useState<SessionData | null>(null);
   const [isPro, setIsPro] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // FAQ & Review State
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [faqQuestion, setFaqQuestion] = useState('');
+  const [faqSubmitting, setFaqSubmitting] = useState(false);
+  const [faqSuccess, setFaqSuccess] = useState(false);
+
+  const [reviewStars, setReviewStars] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [showReviewsDropdown, setShowReviewsDropdown] = useState(false);
+  const [localReviews, setLocalReviews] = useState<{name:string, stars:number, text:string}[]>([]);
 
   useEffect(() => {
     setCustomSession(getSession());
@@ -70,10 +98,51 @@ export default function LandingPage() {
       });
       // Check if this user is a Pro user
       checkAndActivatePro(result.user!.email);
+      router.push('/app');
     } else {
       setLoginError(result.error || 'Login failed.');
     }
     setLoginLoading(false);
+  };
+
+  const handleFaqSubmit = async () => {
+    if (!faqQuestion.trim()) return;
+    setFaqSubmitting(true);
+    try {
+      await fetch('/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'FAQ',
+          payload: { name: displayName, email: customSession?.email || oauthSession?.user?.email, question: faqQuestion }
+        })
+      });
+      setFaqSuccess(true);
+      setFaqQuestion('');
+      setTimeout(() => setFaqSuccess(false), 3000);
+    } catch { alert('Failed to send question'); }
+    setFaqSubmitting(false);
+  };
+
+  const handleReviewSubmit = async () => {
+    if (!reviewText.trim() || reviewStars === 0) return;
+    setReviewSubmitting(true);
+    try {
+      await fetch('/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'REVIEW',
+          payload: { name: displayName, email: customSession?.email || oauthSession?.user?.email, stars: reviewStars, review: reviewText }
+        })
+      });
+      setReviewSuccess(true);
+      setLocalReviews([{ name: displayName, stars: reviewStars, text: reviewText }, ...localReviews]);
+      setReviewText('');
+      setReviewStars(0);
+      setTimeout(() => setReviewSuccess(false), 3000);
+    } catch { alert('Failed to submit review'); }
+    setReviewSubmitting(false);
   };
 
   const handleUpgrade = async () => {
@@ -111,6 +180,8 @@ export default function LandingPage() {
           <div className="lp-nav-links">
             <button className="lp-nav-link" onClick={() => scrollTo('features')}>Features</button>
             <button className="lp-nav-link" onClick={() => scrollTo('pricing')}>Pricing</button>
+            <button className="lp-nav-link" onClick={() => scrollTo('reviews')}>Reviews</button>
+            <button className="lp-nav-link" onClick={() => scrollTo('faq')}>FAQ</button>
             {isLoggedIn ? (
               <button className="lp-user-pill" onClick={() => router.push('/app')}>
                 <span className="lp-user-avatar" style={{ overflow: 'hidden' }}>
@@ -149,15 +220,64 @@ export default function LandingPage() {
             <button
               className="lp-google-btn"
               onClick={() => signIn('google', { callbackUrl: '/auth-callback' })}
-              style={{ padding: '0.75rem' }}
+              style={{
+                width: '100%',
+                marginTop: '1.25rem',
+                display: 'flex',
+                gap: '0.75rem',
+                justifyContent: 'center',
+                alignItems: 'center',
+                background: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border)',
+                fontWeight: 600,
+                fontSize: '1rem',
+                padding: '0.85rem',
+                borderRadius: 'var(--radius)'
+              }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
-              <span>Continue with Google</span>
+              Sign in using Google
+            </button>
+
+            <button
+              onClick={() => signIn('facebook', { callbackUrl: '/auth-callback' })}
+              className="lp-facebook-btn"
+              style={{
+                width: '100%',
+                marginTop: '0.75rem',
+                display: 'flex',
+                gap: '0.75rem',
+                justifyContent: 'center',
+                alignItems: 'center',
+                background: '#1877F2',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '1rem',
+                padding: '0.85rem',
+                borderRadius: 'var(--radius)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease, opacity 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.9';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+              Sign in using Facebook
             </button>
 
             {/* Create Account link */}
@@ -199,8 +319,8 @@ export default function LandingPage() {
                 Go to Dashboard →
               </button>
             ) : (
-              <button className="lp-btn-cta lp-btn-dashboard" onClick={() => router.push('/onboarding')}>
-                Start Planning Free
+              <button className="lp-btn-cta lp-btn-dashboard" onClick={() => setShowSignIn(true)}>
+                SignUp/SignIn
               </button>
             )}
             <button className="lp-btn-ghost" onClick={() => scrollTo('features')}>
@@ -322,8 +442,8 @@ export default function LandingPage() {
                     Current Plan
                   </button>
                 ) : (
-                  <button className="lp-btn-outline" style={{ width: '100%' }} onClick={() => router.push('/onboarding')}>
-                    Get Started Free
+                  <button className="lp-btn-outline" style={{ width: '100%' }} onClick={() => setShowSignIn(true)}>
+                    SignUp/SignIn
                   </button>
                 )}
               </div>
@@ -348,6 +468,144 @@ export default function LandingPage() {
           )}
         </div>
       </section>
+      {/* ─── REVIEWS SECTION ─── */}
+      <section className="lp-section" id="reviews">
+        <div className="lp-section-inner">
+          <div className="lp-badge" style={{ margin: '0 auto 1rem' }}>Community</div>
+          <h2 className="lp-section-title">What people are saying</h2>
+          <p className="lp-section-sub">Read our latest reviews and share your experience.</p>
+          
+          <div className="review-stats">
+            {[5, 4, 3, 2, 1].map(stars => {
+              const count = localReviews.filter(r => r.stars === stars).length;
+              const percent = localReviews.length > 0 ? (count / localReviews.length) * 100 : 0;
+              return (
+                <div key={stars} className="review-stat-row">
+                  <span style={{ width: '40px' }}>{stars} ★</span>
+                  <div className="review-stat-bar-container">
+                    <div className="review-stat-bar" style={{ width: `${percent}%` }} />
+                  </div>
+                  <span style={{ width: '30px', textAlign: 'right' }}>{count}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <button 
+              className="lp-btn-outline" 
+              onClick={() => setShowReviewsDropdown(!showReviewsDropdown)}
+              style={{ padding: '0.75rem 1.5rem', display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}
+            >
+              Read Reviews {showReviewsDropdown ? '▲' : '▼'}
+            </button>
+          </div>
+
+          {showReviewsDropdown && (
+            <div className="animate-slide-up" style={{ marginBottom: '3rem' }}>
+              {localReviews.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                  <div style={{ fontSize: '4rem', marginBottom: '1rem', opacity: 0.5 }}>📦</div>
+                  <p style={{ color: 'var(--text-muted)' }}>No reviews yet. Be the first!</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  {localReviews.map((rev, i) => (
+                    <div key={i} className="review-card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <strong style={{ color: 'var(--accent)' }}>{rev.name}</strong>
+                        <span style={{ color: '#F59E0B' }}>{'★'.repeat(rev.stars)}{'☆'.repeat(5-rev.stars)}</span>
+                      </div>
+                      <p style={{ color: 'var(--text-secondary)' }}>{rev.text}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="contact-box" style={{ maxWidth: '600px', margin: '0 auto' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Leave a review?</h3>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              {[1, 2, 3, 4, 5].map(s => (
+                <button 
+                  key={s} 
+                  className={`star-btn ${reviewStars >= s ? 'active' : ''}`}
+                  onClick={() => setReviewStars(s)}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            <textarea 
+              className="input" 
+              placeholder="Tell us what you think..." 
+              rows={4}
+              value={reviewText}
+              onChange={e => setReviewText(e.target.value)}
+              style={{ width: '100%', marginBottom: '1rem', resize: 'vertical' }}
+            />
+            <button 
+              className="lp-btn-cta lp-btn-dashboard" 
+              onClick={handleReviewSubmit}
+              disabled={reviewSubmitting || !reviewText.trim() || reviewStars === 0}
+            >
+              {reviewSubmitting ? 'Sending...' : 'Send Review'}
+            </button>
+            {reviewSuccess && <p style={{ color: 'var(--accent)', marginTop: '0.5rem' }}>Review submitted!</p>}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FAQ SECTION ─── */}
+      <section className="lp-section lp-section-alt" id="faq">
+        <div className="lp-section-inner" style={{ maxWidth: '700px' }}>
+          <div className="lp-badge" style={{ margin: '0 auto 1rem' }}>FAQ</div>
+          <h2 className="lp-section-title">Frequently Asked Questions</h2>
+          <p className="lp-section-sub">Everything you need to know about PrepBite.</p>
+          
+          <div style={{ margin: '3rem 0' }}>
+            {FAQ_DATA.map((item, index) => (
+              <div key={index} className="faq-item">
+                <button 
+                  className="faq-question" 
+                  onClick={() => setOpenFaqIndex(openFaqIndex === index ? null : index)}
+                >
+                  {item.q}
+                  <span style={{ transform: openFaqIndex === index ? 'rotate(180deg)' : 'none', transition: 'var(--transition)' }}>
+                    ▼
+                  </span>
+                </button>
+                {openFaqIndex === index && (
+                  <div className="faq-answer animate-slide-up">
+                    {item.a}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="contact-box">
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Ask us a question</h3>
+            <textarea 
+              className="input" 
+              placeholder="What's on your mind?" 
+              rows={3}
+              value={faqQuestion}
+              onChange={e => setFaqQuestion(e.target.value)}
+              style={{ width: '100%', marginBottom: '1rem', resize: 'vertical' }}
+            />
+            <button 
+              className="lp-btn-cta lp-btn-dashboard" 
+              onClick={handleFaqSubmit}
+              disabled={faqSubmitting || !faqQuestion.trim()}
+            >
+              {faqSubmitting ? 'Sending...' : 'Send'}
+            </button>
+            {faqSuccess && <p style={{ color: 'var(--accent)', marginTop: '0.5rem' }}>Our team will get back to you!</p>}
+          </div>
+        </div>
+      </section>
 
       {/* ─── FOOTER ─── */}
       <footer className="lp-footer">
@@ -362,8 +620,8 @@ export default function LandingPage() {
               Go to Dashboard →
             </button>
           ) : (
-            <button className="lp-btn-cta lp-btn-sm" onClick={() => router.push('/onboarding')}>
-              Get Started Free
+            <button className="lp-btn-cta lp-btn-sm" onClick={() => setShowSignIn(true)}>
+              SignUp/SignIn
             </button>
           )}
         </div>
