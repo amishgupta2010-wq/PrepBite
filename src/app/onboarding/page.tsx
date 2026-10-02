@@ -282,6 +282,7 @@ export default function OnboardingPage() {
     { key: 'google', label: t.google },
     { key: 'reddit', label: 'Reddit' },
     { key: 'producthunt', label: 'Product Hunt' },
+    { key: 'facebook', label: 'Facebook' },
   ];
 
   return (

@@ -178,14 +178,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {isPro && (
                 <span style={{
                   background: '#10B981',
-                  color: '#F59E0B',
+                  color: '#ffffff',
                   padding: '0.125rem 0.5rem',
                   borderRadius: '0.375rem',
                   fontSize: '0.75rem',
                   fontWeight: 'bold',
                   marginLeft: '0.4rem',
                   boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
-                  WebkitTextStroke: '0.5px black',
                 }}>Pro</span>
               )}
             </div>
@@ -396,7 +395,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 const keysToRemove: string[] = [];
                 for (let i = 0; i < localStorage.length; i++) {
                   const key = localStorage.key(i);
-                  if (key && key.startsWith('prepbite-') && key !== 'prepbite-users') {
+                  if (key && key.startsWith('prepbite-') && key !== 'prepbite-users' && key !== 'prepbite-reviews') {
                     keysToRemove.push(key);
                   }
                 }

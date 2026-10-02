@@ -56,6 +56,11 @@ export default function LandingPage() {
   useEffect(() => {
     setCustomSession(getSession());
     setIsPro(localStorage.getItem('prepbite-is-pro') === 'true');
+    // Load persisted reviews from localStorage
+    try {
+      const saved = localStorage.getItem('prepbite-reviews');
+      if (saved) setLocalReviews(JSON.parse(saved));
+    } catch {}
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       if (searchParams.get('login') === 'true') {
@@ -141,7 +146,10 @@ export default function LandingPage() {
         })
       });
       setReviewSuccess(true);
-      setLocalReviews([{ name: displayName, stars: reviewStars, text: reviewText, owner: displayName }, ...localReviews]);
+      const newReviews = [{ name: displayName, stars: reviewStars, text: reviewText, owner: displayName }, ...localReviews];
+      setLocalReviews(newReviews);
+      // Persist to localStorage so they survive refresh
+      localStorage.setItem('prepbite-reviews', JSON.stringify(newReviews));
       setReviewText('');
       setReviewStars(0);
       setGuestEmail('');
@@ -284,21 +292,6 @@ export default function LandingPage() {
               </svg>
               SignIn/SignUp using Facebook
             </button>
-
-            {/* Create Account link */}
-            <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '1rem' }}>
-              Don't have an account?{' '}
-              <button
-                onClick={() => { setShowSignIn(false); router.push('/onboarding'); }}
-                style={{
-                  background: 'none', border: 'none', color: '#4285F4',
-                  fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem',
-                  textDecoration: 'underline',
-                }}
-              >
-                Create one!
-              </button>
-            </p>
           </div>
         </div>
       )}
@@ -543,7 +536,7 @@ export default function LandingPage() {
                                 <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', borderRadius: 'var(--radius)' }} onClick={() => { setActiveReviewMenu(null); alert('Review reported. Thank you!'); }}>🚩 Report</button>
                               )}
                               {isOwn && (
-                                <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', borderRadius: 'var(--radius)' }} onClick={() => { setActiveReviewMenu(null); setLocalReviews(localReviews.filter((_, idx) => idx !== i)); }}>🗑️ Delete</button>
+                                <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', borderRadius: 'var(--radius)' }} onClick={() => { setActiveReviewMenu(null); const updated = localReviews.filter((_, idx) => idx !== i); setLocalReviews(updated); localStorage.setItem('prepbite-reviews', JSON.stringify(updated)); }}>🗑️ Delete</button>
                               )}
                             </div>
                           )}

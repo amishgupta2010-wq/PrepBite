@@ -21,10 +21,12 @@ export default function AuthCallbackPage() {
 
     if (session?.user?.email) {
       const email = session.user.email;
-      let existingUser = getUserByEmail(email);
+
+      // First: check if this email already exists in our user database (any sign-up method)
+      const existingUser = getUserByEmail(email);
 
       if (existingUser) {
-        // Returning user found in localStorage → restore session and go to app
+        // User already exists → restore session and go straight to app
         const sessionData = JSON.stringify({
           userId: existingUser.id,
           username: existingUser.username,
@@ -35,39 +37,38 @@ export default function AuthCallbackPage() {
         localStorage.setItem('prepbite-remember-me', 'true');
         checkAndActivatePro(email);
         router.replace('/app');
-      } else {
-        // Check if they have onboarding data stored (profile set up but users array missing/cleared)
-        const onboardingRaw = localStorage.getItem('prepbite-onboarding');
-        if (onboardingRaw) {
-          try {
-            const ob = JSON.parse(onboardingRaw);
-            // They completed onboarding before — re-register silently and go to app
-            if (ob.email === email || ob.name) {
-              const name = ob.name || session.user.name || email.split('@')[0];
-              const gender = ob.gender || 'other';
-              // Register them again (won't fail since they don't exist in the array)
-              registerUser(name, email, '', gender, true).then((result) => {
-                const user = result.user;
-                if (user) {
-                  localStorage.setItem('prepbite-session', JSON.stringify({
-                    userId: user.id,
-                    username: user.username,
-                    email: user.email,
-                    gender: user.gender,
-                  }));
-                  localStorage.setItem('prepbite-remember-me', 'true');
-                }
-                checkAndActivatePro(email);
-                router.replace('/app');
-              });
-              return;
-            }
-          } catch {}
-        }
-
-        // Truly new Google user → go to onboarding (skip email step)
-        router.replace('/onboarding?from=google');
+        return;
       }
+
+      // Second: check if they have onboarding data (account set up but users array cleared)
+      const onboardingRaw = localStorage.getItem('prepbite-onboarding');
+      if (onboardingRaw) {
+        try {
+          const ob = JSON.parse(onboardingRaw);
+          if (ob.email === email || ob.name) {
+            const name = ob.name || session.user.name || email.split('@')[0];
+            const gender = ob.gender || 'other';
+            registerUser(name, email, '', gender, true).then((result) => {
+              const user = result.user;
+              if (user) {
+                localStorage.setItem('prepbite-session', JSON.stringify({
+                  userId: user.id,
+                  username: user.username,
+                  email: user.email,
+                  gender: user.gender,
+                }));
+                localStorage.setItem('prepbite-remember-me', 'true');
+              }
+              checkAndActivatePro(email);
+              router.replace('/app');
+            });
+            return;
+          }
+        } catch {}
+      }
+
+      // Truly new user → go to onboarding
+      router.replace('/onboarding?from=google');
     } else {
       router.push('/');
     }
