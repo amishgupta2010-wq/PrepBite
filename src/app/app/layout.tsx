@@ -394,16 +394,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowSignOutConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
-                // Preserve the local user database and reviews so they survive sign-out
+                // Invalidate next-auth session first
+                await signOut({ redirect: false });
+                // Preserve global data that must survive sign-out
                 const usersBackup = localStorage.getItem('prepbite-users');
                 const reviewsBackup = localStorage.getItem('prepbite-reviews');
+                const registryBackup = localStorage.getItem('prepbite-registered-accounts');
+                // Nuke everything
                 localStorage.clear();
-                // Restore preserved data
+                sessionStorage.clear();
+                // Restore global data
                 if (usersBackup) localStorage.setItem('prepbite-users', usersBackup);
                 if (reviewsBackup) localStorage.setItem('prepbite-reviews', reviewsBackup);
-                sessionStorage.clear();
-                await signOut({ redirect: false });
-                window.location.href = "/";
+                if (registryBackup) localStorage.setItem('prepbite-registered-accounts', registryBackup);
+                // Hard refresh — replace prevents back-button re-entry
+                window.location.replace("/");
               }}>Yep!</button>
             </div>
           </div>

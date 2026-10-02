@@ -7,6 +7,7 @@ import WeightRoller from '../components/WeightRoller';
 import { LANGUAGES, TRANSLATIONS, LanguageCode } from '../lib/translations';
 import { registerUser, loginUser } from '../../lib/auth';
 import { checkAndActivatePro } from '../../lib/proUsers';
+import { markOnboardingComplete } from '../auth-callback/page';
 
 type WeightUnit = 'kg' | 'lbs';
 type HeightUnit = 'cm' | 'ft';
@@ -259,6 +260,9 @@ export default function OnboardingPage() {
         if (isOAuth) {
           await update({ onboardingCompleted: true });
         }
+
+        // Mark onboarding complete in local registry
+        markOnboardingComplete(email);
 
         checkAndActivatePro(email);
         router.push('/dashboard');

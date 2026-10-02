@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { markTutorialSeen } from '../auth-callback/page';
 
 const STEPS = [
   { target: '.tab-btn-ingredients', text: 'Here you can add available ingredients present in your home!' },
@@ -89,6 +90,7 @@ export default function Tutorial() {
       localStorage.setItem('prepbite-tutorial-done', 'true');
       if (session?.user) {
         update({ hasSeenTutorial: true });
+        if (session.user.email) markTutorialSeen(session.user.email);
       }
       setStep(null);
     }
@@ -101,6 +103,7 @@ export default function Tutorial() {
       localStorage.setItem('prepbite-tutorial-done', 'true');
       if (session?.user) {
         update({ hasSeenTutorial: true });
+        if (session.user.email) markTutorialSeen(session.user.email);
       }
       setStep(null);
     }
