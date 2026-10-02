@@ -177,16 +177,16 @@ export function deleteAccount() {
 
     // Remove from registered accounts registry
     try {
-      const raw = localStorage.getItem('prepbite-registered-accounts');
+      const raw = localStorage.getItem('prepbite_registered_accounts');
       if (raw) {
         const accounts = JSON.parse(raw);
         const updatedAccounts = accounts.filter((a: any) => a.email.toLowerCase() !== session.email.toLowerCase());
-        localStorage.setItem('prepbite-registered-accounts', JSON.stringify(updatedAccounts));
+        localStorage.setItem('prepbite_registered_accounts', JSON.stringify(updatedAccounts));
       }
     } catch {}
   }
   // Clear all PrepBite data EXCEPT reviews (reviews are permanent) and registered accounts
-  const PRESERVE = new Set(['prepbite-reviews', 'prepbite-registered-accounts']);
+  const PRESERVE = new Set(['prepbite_reviews', 'prepbite_registered_accounts']);
   const keysToRemove: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);

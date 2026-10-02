@@ -17,13 +17,13 @@ interface RegisteredAccount {
 
 function getRegistry(): RegisteredAccount[] {
   try {
-    const raw = localStorage.getItem('prepbite-registered-accounts');
+    const raw = localStorage.getItem('prepbite_registered_accounts');
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
 function saveRegistry(accounts: RegisteredAccount[]) {
-  localStorage.setItem('prepbite-registered-accounts', JSON.stringify(accounts));
+  localStorage.setItem('prepbite_registered_accounts', JSON.stringify(accounts));
 }
 
 function findAccount(email: string): RegisteredAccount | undefined {
@@ -60,95 +60,70 @@ export default function AuthCallbackPage() {
     if (status === 'loading') return;
 
     if (status === 'unauthenticated') {
-      router.replace('/');
+      window.location.replace('/');
       return;
     }
 
     if (!session?.user?.email) {
-      router.replace('/');
+      window.location.replace('/');
       return;
     }
 
     const email = session.user.email;
 
-    // ── Step 1: Check the registered accounts registry ──
-    const registeredAccount = findAccount(email);
+    // Restore or create a local session so customSession is not null
+    let existingDbUser = getUserByEmail(email);
+    if (!existingDbUser) {
+      // Re-create silently if not found so local session works
+      registerUser(session.user.name || email.split('@')[0], email, '', 'other', true).then(res => {
+        if (res.user) existingDbUser = res.user;
+        if (existingDbUser) {
+          localStorage.setItem('prepbite-session', JSON.stringify({
+            userId: existingDbUser.id,
+            username: existingDbUser.username,
+            email: existingDbUser.email,
+            gender: existingDbUser.gender,
+          }));
+          localStorage.setItem('prepbite-remember-me', 'true');
+        }
+      });
+    } else {
+      localStorage.setItem('prepbite-session', JSON.stringify({
+        userId: existingDbUser.id,
+        username: existingDbUser.username,
+        email: existingDbUser.email,
+        gender: existingDbUser.gender,
+      }));
+      localStorage.setItem('prepbite-remember-me', 'true');
+    }
+    
+    checkAndActivatePro(email);
 
-    if (registeredAccount && registeredAccount.hasCompletedOnboarding) {
-      // Returning user — restore session and go straight to /app
-      const existingUser = getUserByEmail(email);
+    // Explicit user snippet logic:
+    const accounts = JSON.parse(localStorage.getItem("prepbite_registered_accounts") || "[]");
+    const existingUser = accounts.find((acc: any) => acc.email === email);
 
-      if (existingUser) {
-        // User exists in local DB — restore session
-        localStorage.setItem('prepbite-session', JSON.stringify({
-          userId: existingUser.id,
-          username: existingUser.username,
-          email: existingUser.email,
-          gender: existingUser.gender,
-        }));
-        localStorage.setItem('prepbite-remember-me', 'true');
-      } else {
-        // Registry says onboarded but user DB was cleared — re-create silently
-        registerUser(session.user.name || email.split('@')[0], email, '', 'other', true).then((result) => {
-          if (result.user) {
-            localStorage.setItem('prepbite-session', JSON.stringify({
-              userId: result.user.id,
-              username: result.user.username,
-              email: result.user.email,
-              gender: result.user.gender,
-            }));
-            localStorage.setItem('prepbite-remember-me', 'true');
-          }
-        });
-      }
-
-      // Suppress tutorial if already seen
-      if (registeredAccount.hasSeenTutorial) {
+    if (existingUser && existingUser.hasCompletedOnboarding) {
+      // Existing user: Jump DIRECTLY to dashboard, skip questions and tutorial
+      if (existingUser.hasSeenTutorial) {
         localStorage.setItem('prepbite-tutorial-done', 'true');
       }
-
-      checkAndActivatePro(email);
-      router.replace('/app');
+      window.location.replace("/app");
       return;
+    } else {
+      // Brand new user: register them and proceed to onboarding
+      if (!existingUser) {
+        accounts.push({
+          email,
+          hasCompletedOnboarding: false,
+          hasSeenTutorial: false,
+          tier: "free",
+        });
+        localStorage.setItem("prepbite_registered_accounts", JSON.stringify(accounts));
+      }
+      window.location.replace("/onboarding");
     }
-
-    // ── Step 2: Onboarding data exists (local recovery) ──
-    const onboardingRaw = localStorage.getItem('prepbite-onboarding');
-    if (onboardingRaw) {
-      try {
-        const ob = JSON.parse(onboardingRaw);
-        const name = ob.name || session.user.name || email.split('@')[0];
-        const gender = ob.gender || 'other';
-
-        registerUser(name, email, '', gender, true).then((result) => {
-          if (result.user) {
-            localStorage.setItem('prepbite-session', JSON.stringify({
-              userId: result.user.id,
-              username: result.user.username,
-              email: result.user.email,
-              gender: result.user.gender,
-            }));
-            localStorage.setItem('prepbite-remember-me', 'true');
-          }
-          // Mark as onboarded in registry
-          markOnboardingComplete(email);
-          markTutorialSeen(email);
-          localStorage.setItem('prepbite-tutorial-done', 'true');
-          checkAndActivatePro(email);
-          router.replace('/app');
-        }).catch(() => router.replace('/onboarding?from=google'));
-        return;
-      } catch {}
-    }
-
-    // ── Step 3: Brand new user — register in registry and go to onboarding ──
-    const accounts = getRegistry();
-    if (!accounts.find(a => a.email.toLowerCase() === email.toLowerCase())) {
-      accounts.push({ email: email.toLowerCase(), tier: 'free', hasCompletedOnboarding: false, hasSeenTutorial: false });
-      saveRegistry(accounts);
-    }
-    router.replace('/onboarding?from=google');
-  }, [session, status, router]);
+  }, [session, status]);
 
   return (
     <div style={{

@@ -394,20 +394,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowSignOutConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
-                // Invalidate next-auth session first
-                await signOut({ redirect: false });
-                // Preserve global data that must survive sign-out
-                const usersBackup = localStorage.getItem('prepbite-users');
-                const reviewsBackup = localStorage.getItem('prepbite-reviews');
-                const registryBackup = localStorage.getItem('prepbite-registered-accounts');
-                // Nuke everything
+                // 1. Wipe all local/session storage keys
+                localStorage.removeItem("prepbite_active_session");
+                localStorage.removeItem("prepbite_guest");
+                localStorage.removeItem("guest_user");
+                
+                // Clear everything except registered accounts & reviews
+                const registered = localStorage.getItem("prepbite_registered_accounts");
+                const reviews = localStorage.getItem("prepbite_reviews");
                 localStorage.clear();
                 sessionStorage.clear();
-                // Restore global data
-                if (usersBackup) localStorage.setItem('prepbite-users', usersBackup);
-                if (reviewsBackup) localStorage.setItem('prepbite-reviews', reviewsBackup);
-                if (registryBackup) localStorage.setItem('prepbite-registered-accounts', registryBackup);
-                // Hard refresh — replace prevents back-button re-entry
+                if (registered) localStorage.setItem("prepbite_registered_accounts", registered);
+                if (reviews) localStorage.setItem("prepbite_reviews", reviews);
+
+                // 2. NextAuth SignOut
+                await signOut({ redirect: false });
+
+                // 3. Force clean document redirect
                 window.location.replace("/");
               }}>Yep!</button>
             </div>

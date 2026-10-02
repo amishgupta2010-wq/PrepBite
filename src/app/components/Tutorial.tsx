@@ -30,10 +30,18 @@ export default function Tutorial() {
     const onTrigger = () => startTutorial();
     window.addEventListener('prepbite-trigger-tutorial', onTrigger);
 
+    let hasSeenTutorial = false;
+    try {
+      const email = session?.user?.email;
+      const accounts = JSON.parse(localStorage.getItem('prepbite_registered_accounts') || '[]');
+      const existingUser = accounts.find((acc: any) => acc.email === email);
+      if (existingUser?.hasSeenTutorial) hasSeenTutorial = true;
+    } catch {}
+
     const isLocalDone = localStorage.getItem('prepbite-tutorial-done') === 'true';
     const isSessionDone = (session?.user as any)?.hasSeenTutorial === true;
 
-    if (!isLocalDone && !isSessionDone) {
+    if (!isLocalDone && !isSessionDone && !hasSeenTutorial) {
       const timer = setTimeout(() => startTutorial(), 500);
       return () => clearTimeout(timer);
     }

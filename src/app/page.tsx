@@ -59,7 +59,7 @@ export default function LandingPage() {
     setIsPro(localStorage.getItem('prepbite-is-pro') === 'true');
     // Load reviews from localStorage (persistent across refreshes)
     try {
-      const stored = localStorage.getItem('prepbite-reviews');
+      const stored = localStorage.getItem('prepbite_reviews');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) setLocalReviews(parsed);
@@ -85,7 +85,7 @@ export default function LandingPage() {
   }, [showSignIn]);
 
   const isLoggedIn = !!oauthSession || !!customSession;
-  const displayName = customSession?.username || oauthSession?.user?.name || 'User';
+  const displayName = customSession?.username || oauthSession?.user?.name || null;
   const gender = customSession?.gender || 'other';
 
   const genderAvatar = gender === 'male' ? '👨' : gender === 'female' ? '👩' : '🧑';
@@ -144,19 +144,19 @@ export default function LandingPage() {
       const userEmail = customSession?.email || oauthSession?.user?.email || '';
       const newReview = {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-        name: displayName,
-        userName: displayName,
+        name: displayName || '',
+        userName: displayName || '',
         stars: reviewStars,
         rating: reviewStars,
         text: reviewText.trim(),
         comment: reviewText.trim(),
-        owner: displayName,
+        owner: displayName || '',
         createdAt: new Date().toISOString(),
       };
       // Save to localStorage immediately (persistent source of truth)
       const updated = [newReview, ...localReviews];
       setLocalReviews(updated);
-      localStorage.setItem('prepbite-reviews', JSON.stringify(updated));
+      localStorage.setItem('prepbite_reviews', JSON.stringify(updated));
       
       // Fire email notification via API (background, non-blocking)
       fetch('/api/email', {
@@ -521,7 +521,7 @@ export default function LandingPage() {
                                 <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', borderRadius: 'var(--radius)' }} onClick={() => { setActiveReviewMenu(null); alert('Review reported. Thank you!'); }}>🚩 Report</button>
                               )}
                               {isOwn && (
-                                <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', borderRadius: 'var(--radius)' }} onClick={() => { setActiveReviewMenu(null); const reviewId = rev.id; setLocalReviews(prev => { const updated = prev.filter(r => r.id !== reviewId); localStorage.setItem('prepbite-reviews', JSON.stringify(updated)); return updated; }); }}>🗑️ Delete</button>
+                                <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', borderRadius: 'var(--radius)' }} onClick={() => { setActiveReviewMenu(null); const reviewId = rev.id; setLocalReviews(prev => { const updated = prev.filter(r => r.id !== reviewId); localStorage.setItem('prepbite_reviews', JSON.stringify(updated)); return updated; }); }}>🗑️ Delete</button>
                               )}
                             </div>
                           )}

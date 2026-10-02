@@ -491,19 +491,6 @@ export default function OnboardingPage() {
 
       {/* Next button area */}
       <div style={{ padding: '1.5rem 0', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-          Already have an account?{' '}
-          <button 
-            onClick={() => router.push('/?login=true')}
-            style={{
-              background: 'none', border: 'none', color: '#4285F4',
-              fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem',
-              textDecoration: 'underline',
-            }}
-          >
-            Sign in!
-          </button>
-        </p>
         <button className="btn btn-primary" disabled={!isStepValid} onClick={handleNext} style={{ width: '100%', fontSize: '1.125rem', padding: '1rem' }}>
           {step === totalSteps ? t.complete : t.next}
         </button>
