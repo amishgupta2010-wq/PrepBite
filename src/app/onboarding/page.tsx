@@ -175,7 +175,7 @@ export default function OnboardingPage() {
     return { valid: true, message: '' };
   }, [data]);
 
-  const { data: oauthSession } = useSession();
+  const { data: oauthSession, update } = useSession();
 
   const isStepValid = useMemo(() => {
     switch (step) {
@@ -254,6 +254,11 @@ export default function OnboardingPage() {
             }
           })
         }).catch(console.error);
+
+        // Update NextAuth session if OAuth user
+        if (isOAuth) {
+          await update({ onboardingCompleted: true });
+        }
 
         checkAndActivatePro(email);
         router.push('/dashboard');

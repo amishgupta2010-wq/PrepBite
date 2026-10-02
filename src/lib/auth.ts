@@ -13,6 +13,8 @@ export interface PrepBiteUser {
   passwordHash: string;
   gender: 'male' | 'female' | 'other';
   createdAt: string;
+  onboardingCompleted?: boolean;
+  hasSeenTutorial?: boolean;
 }
 
 export interface AuthResult {
@@ -141,6 +143,8 @@ export interface SessionData {
   username: string;
   email: string;
   gender: 'male' | 'female' | 'other';
+  onboardingCompleted?: boolean;
+  hasSeenTutorial?: boolean;
 }
 
 export function getSession(): SessionData | null {

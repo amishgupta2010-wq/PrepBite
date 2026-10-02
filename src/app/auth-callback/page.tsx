@@ -24,6 +24,7 @@ export default function AuthCallbackPage() {
     }
 
     const email = session.user.email;
+    const isSessionOnboardingCompleted = (session.user as any).onboardingCompleted;
 
     // ── Step 1: Check if user already exists in our local DB ──
     const existingUser = getUserByEmail(email);
@@ -44,6 +45,26 @@ export default function AuthCallbackPage() {
 
       checkAndActivatePro(email);
       router.replace('/app');
+      return;
+    }
+
+    // ── Step 1.5: If NextAuth session says onboarding is completed, but they aren't in local DB ──
+    // We recreate them in local DB silently and skip onboarding.
+    if (isSessionOnboardingCompleted) {
+      registerUser(session.user.name || email.split('@')[0], email, '', 'other', true).then((result) => {
+        if (result.user) {
+          localStorage.setItem('prepbite-session', JSON.stringify({
+            userId: result.user.id,
+            username: result.user.username,
+            email: result.user.email,
+            gender: result.user.gender,
+          }));
+          localStorage.setItem('prepbite-remember-me', 'true');
+        }
+        localStorage.setItem('prepbite-tutorial-done', 'true');
+        checkAndActivatePro(email);
+        router.replace('/app');
+      });
       return;
     }
 

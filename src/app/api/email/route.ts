@@ -1,18 +1,12 @@
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { sendMail } from '@/lib/mail';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { type, payload } = body;
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
-      },
-    });
+    // Using shared mail helper instead of inline transporter
 
     let subject = '';
     let text = '';
@@ -50,15 +44,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid email type' }, { status: 400 });
     }
 
-    const mailOptions = {
-      from: process.env.GMAIL_USER,
-      to: process.env.GMAIL_USER, // Send to yourself
-      subject,
-      text,
-      html,
-    };
-
-    await transporter.sendMail(mailOptions);
+    const toEmail = process.env.GMAIL_USER;
+    if (toEmail && process.env.GMAIL_APP_PASSWORD) {
+      sendMail(toEmail, subject, html, text).catch(emailErr => {
+        console.error('Email helper failed:', emailErr);
+      });
+    }
     return NextResponse.json({ success: true });
 
   } catch (error: any) {

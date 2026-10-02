@@ -26,10 +26,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/",
   },
   callbacks: {
+    async jwt({ token, user, trigger, session }) {
+      if (user) {
+        token.id = user.id;
+        token.onboardingCompleted = (user as any).onboardingCompleted || false;
+        token.hasSeenTutorial = (user as any).hasSeenTutorial || false;
+      }
+      if (trigger === 'update' && session) {
+        if (session.onboardingCompleted !== undefined) token.onboardingCompleted = session.onboardingCompleted;
+        if (session.hasSeenTutorial !== undefined) token.hasSeenTutorial = session.hasSeenTutorial;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session?.user) {
+        (session.user as any).id = token.id as string;
+        (session.user as any).onboardingCompleted = token.onboardingCompleted as boolean;
+        (session.user as any).hasSeenTutorial = token.hasSeenTutorial as boolean;
+      }
+      return session;
+    },
     async redirect({ url, baseUrl }) {
-      // Allow sign-out redirects to go to "/" (or wherever specified)
       if (url === '/' || url === baseUrl || url === `${baseUrl}/`) return '/';
-      // For OAuth sign-in, always land on auth-callback
       return `${baseUrl}/auth-callback`;
     },
   },

@@ -31,10 +31,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mealStreak, setMealStreak] = useState(0);
   const [exerciseStreak, setExerciseStreak] = useState(0);
 
+  const customSession = getSession();
+
   useEffect(() => {
     // Auth Guard
     if (status === 'loading') return;
-    const customSession = getSession();
     if (!customSession && status === 'unauthenticated') {
       router.push('/');
       return;
@@ -89,8 +90,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       setMealStreak(mStreak);
       setExerciseStreak(eStreak);
     } catch {}
-  }, [pathname, status, router]);
+  }, [pathname, status, router, theme]);
 
+  if (status === 'loading') return null;
+  if (!customSession && status === 'unauthenticated') return null;
 
   const handleReplayTutorial = () => {
     localStorage.removeItem('prepbite-tutorial-done');
@@ -331,7 +334,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       </div>
                     ) : (
                       <span style={{ fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }} onClick={() => { setEditingField('name'); setEditValue(userData?.name || ''); }}>
-                        {userData?.name || 'Guest'} <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>✎</span>
+                        {userData?.name || 'User'} <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>✎</span>
                       </span>
                     )}
                   </div>
@@ -391,29 +394,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowSignOutConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
-                // Explicitly call logoutUser to clear the custom session from localStorage/sessionStorage
-                logoutUser();
-
-                // Remove ALL prepbite keys except: user database, reviews, and tutorial-done flag
-                // (tutorial-done stays so returning users don't get the tutorial again)
-                const KEEP = new Set(['prepbite-users', 'prepbite-reviews', 'prepbite-tutorial-done']);
-                const keysToRemove: string[] = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                  const key = localStorage.key(i);
-                  if (key && key.startsWith('prepbite-') && !KEEP.has(key)) {
-                    keysToRemove.push(key);
-                  }
-                }
-                keysToRemove.forEach(k => localStorage.removeItem(k));
+                localStorage.clear();
                 sessionStorage.clear();
-
-                // Force-expire all cookies
-                document.cookie.split(';').forEach(c => {
-                  document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-                });
-
-                // NextAuth sign-out clears the server-side JWT / session cookie
-                await signOut({ callbackUrl: '/' });
+                await signOut({ redirect: false });
+                window.location.href = "/";
               }}>Yep!</button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 
 const STEPS = [
   { target: '.tab-btn-ingredients', text: 'Here you can add available ingredients present in your home!' },
@@ -14,6 +15,7 @@ export default function Tutorial() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0, targetX: 0, isTopTarget: false });
   const [winH, setWinH] = useState(0);
+  const { data: session, update } = useSession();
 
   const startTutorial = useCallback(() => {
     setStep(0);
@@ -27,7 +29,10 @@ export default function Tutorial() {
     const onTrigger = () => startTutorial();
     window.addEventListener('prepbite-trigger-tutorial', onTrigger);
 
-    if (!localStorage.getItem('prepbite-tutorial-done')) {
+    const isLocalDone = localStorage.getItem('prepbite-tutorial-done') === 'true';
+    const isSessionDone = (session?.user as any)?.hasSeenTutorial === true;
+
+    if (!isLocalDone && !isSessionDone) {
       const timer = setTimeout(() => startTutorial(), 500);
       return () => clearTimeout(timer);
     }
@@ -82,6 +87,9 @@ export default function Tutorial() {
       }, 100);
     } else {
       localStorage.setItem('prepbite-tutorial-done', 'true');
+      if (session?.user) {
+        update({ hasSeenTutorial: true });
+      }
       setStep(null);
     }
   };
@@ -91,6 +99,9 @@ export default function Tutorial() {
     setShowConfirm(false);
     if (skip) {
       localStorage.setItem('prepbite-tutorial-done', 'true');
+      if (session?.user) {
+        update({ hasSeenTutorial: true });
+      }
       setStep(null);
     }
   };

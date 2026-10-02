@@ -1,29 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { sendMail } from '@/lib/mail';
 
-// File-based persistent storage for reviews (survives server restarts in dev/prod)
-const REVIEWS_FILE = path.join(process.cwd(), 'data', 'reviews.json');
-
-function ensureDataDir() {
-  const dir = path.join(process.cwd(), 'data');
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-}
+// In-memory fallback for serverless environments
+let memoryReviews: Review[] = [];
 
 function readReviews(): Review[] {
-  try {
-    ensureDataDir();
-    if (!fs.existsSync(REVIEWS_FILE)) return [];
-    const raw = fs.readFileSync(REVIEWS_FILE, 'utf-8');
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
+  return memoryReviews;
 }
 
 function writeReviews(reviews: Review[]) {
-  ensureDataDir();
-  fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviews, null, 2), 'utf-8');
+  memoryReviews = reviews;
 }
 
 interface Review {
@@ -67,30 +55,21 @@ export async function POST(req: NextRequest) {
     writeReviews(reviews);
 
     // Fire email notification (non-blocking)
-    try {
-      const nodemailer = await import('nodemailer');
-      const transporter = nodemailer.default.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.GMAIL_USER,
-          pass: process.env.GMAIL_APP_PASSWORD,
-        },
+    const subject = `⭐ New PrepBite Review: ${rating}/5 from ${userName}`;
+    const html = `
+      <h3>New Review on PrepBite</h3>
+      <p><strong>Name:</strong> ${userName}</p>
+      <p><strong>Email:</strong> ${userEmail || 'Not provided'}</p>
+      <p><strong>Rating:</strong> ${'⭐'.repeat(rating)} (${rating}/5)</p>
+      <p><strong>Review:</strong> ${comment}</p>
+      <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+    `;
+    const toEmail = process.env.GMAIL_USER;
+    if (toEmail && process.env.GMAIL_APP_PASSWORD) {
+      // Fire and forget (don't await)
+      sendMail(toEmail, subject, html).catch(emailErr => {
+        console.error('Review email notification failed:', emailErr);
       });
-      await transporter.sendMail({
-        from: process.env.GMAIL_USER,
-        to: process.env.GMAIL_USER,
-        subject: `⭐ New PrepBite Review: ${rating}/5 from ${userName}`,
-        html: `
-          <h3>New Review on PrepBite</h3>
-          <p><strong>Name:</strong> ${userName}</p>
-          <p><strong>Email:</strong> ${userEmail || 'Not provided'}</p>
-          <p><strong>Rating:</strong> ${'⭐'.repeat(rating)} (${rating}/5)</p>
-          <p><strong>Review:</strong> ${comment}</p>
-          <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
-        `,
-      });
-    } catch (emailErr) {
-      console.error('Review email notification failed:', emailErr);
     }
 
     return NextResponse.json(newReview, { status: 201 });
