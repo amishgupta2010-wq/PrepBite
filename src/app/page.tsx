@@ -43,12 +43,15 @@ export default function LandingPage() {
   const [faqSubmitting, setFaqSubmitting] = useState(false);
   const [faqSuccess, setFaqSuccess] = useState(false);
 
+  const [guestEmail, setGuestEmail] = useState('');
+  const [activeReviewMenu, setActiveReviewMenu] = useState<number | null>(null);
+
   const [reviewStars, setReviewStars] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
   const [showReviewsDropdown, setShowReviewsDropdown] = useState(false);
-  const [localReviews, setLocalReviews] = useState<{name:string, stars:number, text:string}[]>([]);
+  const [localReviews, setLocalReviews] = useState<{name:string, stars:number, text:string, owner:string}[]>([]);
 
   useEffect(() => {
     setCustomSession(getSession());
@@ -114,11 +117,12 @@ export default function LandingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'FAQ',
-          payload: { name: displayName, email: customSession?.email || oauthSession?.user?.email, question: faqQuestion }
+          payload: { name: displayName, email: customSession?.email || oauthSession?.user?.email || guestEmail || 'None', question: faqQuestion }
         })
       });
       setFaqSuccess(true);
       setFaqQuestion('');
+      setGuestEmail('');
       setTimeout(() => setFaqSuccess(false), 3000);
     } catch { alert('Failed to send question'); }
     setFaqSubmitting(false);
@@ -133,13 +137,14 @@ export default function LandingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'REVIEW',
-          payload: { name: displayName, email: customSession?.email || oauthSession?.user?.email, stars: reviewStars, review: reviewText }
+          payload: { name: displayName, email: customSession?.email || oauthSession?.user?.email || guestEmail || 'None', stars: reviewStars, review: reviewText }
         })
       });
       setReviewSuccess(true);
-      setLocalReviews([{ name: displayName, stars: reviewStars, text: reviewText }, ...localReviews]);
+      setLocalReviews([{ name: displayName, stars: reviewStars, text: reviewText, owner: displayName }, ...localReviews]);
       setReviewText('');
       setReviewStars(0);
+      setGuestEmail('');
       setTimeout(() => setReviewSuccess(false), 3000);
     } catch { alert('Failed to submit review'); }
     setReviewSubmitting(false);
@@ -198,7 +203,7 @@ export default function LandingPage() {
                 className="lp-btn-outline lp-btn-sm"
                 onClick={() => setShowSignIn(true)}
               >
-                Sign In
+                SignIn/SignUp
               </button>
             )}
           </div>
@@ -242,7 +247,7 @@ export default function LandingPage() {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
-              Sign in using Google
+              SignIn/SignUp using Google
             </button>
 
             <button
@@ -277,7 +282,7 @@ export default function LandingPage() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
               </svg>
-              Sign in using Facebook
+              SignIn/SignUp using Facebook
             </button>
 
             {/* Create Account link */}
@@ -510,15 +515,44 @@ export default function LandingPage() {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: '1rem' }}>
-                  {localReviews.map((rev, i) => (
-                    <div key={i} className="review-card">
+                  {localReviews.map((rev, i) => {
+                    const isOwn = isLoggedIn && rev.owner === displayName;
+                    return (
+                    <div key={i} className="review-card" style={{ position: 'relative' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <strong style={{ color: 'var(--accent)' }}>{rev.name}</strong>
-                        <span style={{ color: '#F59E0B' }}>{'★'.repeat(rev.stars)}{'☆'.repeat(5-rev.stars)}</span>
+                        <div>
+                          <strong style={{ color: 'var(--accent)', marginRight: '0.5rem' }}>{rev.name}</strong>
+                          <span style={{ color: '#F59E0B' }}>{'★'.repeat(rev.stars)}{'☆'.repeat(5-rev.stars)}</span>
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                          <button 
+                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}
+                            onClick={() => setActiveReviewMenu(activeReviewMenu === i ? null : i)}
+                          >
+                            ⋮
+                          </button>
+                          {activeReviewMenu === i && (
+                            <div style={{ 
+                              position: 'absolute', right: 0, top: '100%', 
+                              background: 'var(--bg-card)', border: '1px solid var(--border)', 
+                              borderRadius: 'var(--radius)', padding: '0.5rem', 
+                              minWidth: '130px', zIndex: 10,
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                            }}>
+                              {!isOwn && (
+                                <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', borderRadius: 'var(--radius)' }} onClick={() => { setActiveReviewMenu(null); alert('Review reported. Thank you!'); }}>🚩 Report</button>
+                              )}
+                              {isOwn && (
+                                <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', borderRadius: 'var(--radius)' }} onClick={() => { setActiveReviewMenu(null); setLocalReviews(localReviews.filter((_, idx) => idx !== i)); }}>🗑️ Delete</button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <p style={{ color: 'var(--text-secondary)' }}>{rev.text}</p>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -526,33 +560,47 @@ export default function LandingPage() {
 
           <div className="contact-box" style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Leave a review?</h3>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-              {[1, 2, 3, 4, 5].map(s => (
-                <button 
-                  key={s} 
-                  className={`star-btn ${reviewStars >= s ? 'active' : ''}`}
-                  onClick={() => setReviewStars(s)}
-                >
-                  ★
+            {!isLoggedIn ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem' }}>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '1.05rem' }}>
+                  <strong style={{ color: 'var(--accent)' }}>SignUp/SignIn — It&apos;s free!</strong>
+                </p>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Create a free account to leave a review.</p>
+                <button className="lp-btn-cta lp-btn-dashboard" onClick={() => setShowSignIn(true)}>
+                  SignIn/SignUp
                 </button>
-              ))}
-            </div>
-            <textarea 
-              className="input" 
-              placeholder="Tell us what you think..." 
-              rows={4}
-              value={reviewText}
-              onChange={e => setReviewText(e.target.value)}
-              style={{ width: '100%', marginBottom: '1rem', resize: 'vertical' }}
-            />
-            <button 
-              className="lp-btn-cta lp-btn-dashboard" 
-              onClick={handleReviewSubmit}
-              disabled={reviewSubmitting || !reviewText.trim() || reviewStars === 0}
-            >
-              {reviewSubmitting ? 'Sending...' : 'Send Review'}
-            </button>
-            {reviewSuccess && <p style={{ color: 'var(--accent)', marginTop: '0.5rem' }}>Review submitted!</p>}
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <button 
+                      key={s} 
+                      className={`star-btn ${reviewStars >= s ? 'active' : ''}`}
+                      onClick={() => setReviewStars(s)}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                <textarea 
+                  className="input" 
+                  placeholder="Tell us what you think..." 
+                  rows={4}
+                  value={reviewText}
+                  onChange={e => setReviewText(e.target.value)}
+                  style={{ width: '100%', marginBottom: '1rem', resize: 'vertical' }}
+                />
+                <button 
+                  className="lp-btn-cta lp-btn-dashboard" 
+                  onClick={handleReviewSubmit}
+                  disabled={reviewSubmitting || !reviewText.trim() || reviewStars === 0}
+                >
+                  {reviewSubmitting ? 'Sending...' : 'Send Review'}
+                </button>
+                {reviewSuccess && <p style={{ color: 'var(--accent)', marginTop: '0.5rem' }}>Review submitted! ✓</p>}
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -587,22 +635,36 @@ export default function LandingPage() {
 
           <div className="contact-box">
             <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Ask us a question</h3>
-            <textarea 
-              className="input" 
-              placeholder="What's on your mind?" 
-              rows={3}
-              value={faqQuestion}
-              onChange={e => setFaqQuestion(e.target.value)}
-              style={{ width: '100%', marginBottom: '1rem', resize: 'vertical' }}
-            />
-            <button 
-              className="lp-btn-cta lp-btn-dashboard" 
-              onClick={handleFaqSubmit}
-              disabled={faqSubmitting || !faqQuestion.trim()}
-            >
-              {faqSubmitting ? 'Sending...' : 'Send'}
-            </button>
-            {faqSuccess && <p style={{ color: 'var(--accent)', marginTop: '0.5rem' }}>Our team will get back to you!</p>}
+            {!isLoggedIn ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem' }}>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '1.05rem' }}>
+                  <strong style={{ color: 'var(--accent)' }}>SignUp/SignIn — It&apos;s free!</strong>
+                </p>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Create a free account to ask us anything.</p>
+                <button className="lp-btn-cta lp-btn-dashboard" onClick={() => setShowSignIn(true)}>
+                  SignIn/SignUp
+                </button>
+              </div>
+            ) : (
+              <>
+                <textarea 
+                  className="input" 
+                  placeholder="What&apos;s on your mind?" 
+                  rows={3}
+                  value={faqQuestion}
+                  onChange={e => setFaqQuestion(e.target.value)}
+                  style={{ width: '100%', marginBottom: '1rem', resize: 'vertical' }}
+                />
+                <button 
+                  className="lp-btn-cta lp-btn-dashboard" 
+                  onClick={handleFaqSubmit}
+                  disabled={faqSubmitting || !faqQuestion.trim()}
+                >
+                  {faqSubmitting ? 'Sending...' : 'Send'}
+                </button>
+                {faqSuccess && <p style={{ color: 'var(--accent)', marginTop: '0.5rem' }}>Our team will get back to you! ✓</p>}
+              </>
+            )}
           </div>
         </div>
       </section>

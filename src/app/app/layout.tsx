@@ -184,7 +184,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   fontSize: '0.75rem',
                   fontWeight: 'bold',
                   marginLeft: '0.4rem',
-                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
+                  WebkitTextStroke: '0.5px black',
                 }}>Pro</span>
               )}
             </div>
@@ -391,15 +392,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowSignOutConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
-                // Purge local storage first
+                // Purge local storage first, but PRESERVE prepbite-users so accounts aren't deleted
                 const keysToRemove: string[] = [];
                 for (let i = 0; i < localStorage.length; i++) {
                   const key = localStorage.key(i);
-                  if (key && key.startsWith('prepbite-')) keysToRemove.push(key);
+                  if (key && key.startsWith('prepbite-') && key !== 'prepbite-users') {
+                    keysToRemove.push(key);
+                  }
                 }
                 keysToRemove.forEach(k => localStorage.removeItem(k));
                 sessionStorage.clear();
-                // Explicitly call client-side signOut from next-auth/react to clear cookies
+                
+                // Force clear all cookies on the client side
+                document.cookie.split(";").forEach(function(c) { 
+                  document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                
+                // Call client-side signOut from next-auth/react to clear session state and redirect
                 await signOut({ callbackUrl: '/' });
               }}>Yep!</button>
             </div>
@@ -425,6 +434,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 deleteAccount();
                 // Call server-side endpoint to expire all auth cookies
                 await fetch('/api/user/delete', { method: 'DELETE', body: JSON.stringify({}) });
+                
+                // Force clear all cookies on the client side
+                document.cookie.split(";").forEach(function(c) { 
+                  document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+
                 // Call client-side signOut to clear Google session state and redirect
                 await signOut({ callbackUrl: '/' });
               }}>Yep!</button>
