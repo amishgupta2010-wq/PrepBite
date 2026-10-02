@@ -50,17 +50,35 @@ export default function LandingPage() {
   const [reviewText, setReviewText] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [showReviewsDropdown, setShowReviewsDropdown] = useState(false);
-  const [localReviews, setLocalReviews] = useState<{name:string, stars:number, text:string, owner:string}[]>([]);
+  const [localReviews, setLocalReviews] = useState<{id:string, name:string, userName:string, rating:number, stars:number, comment:string, text:string, owner:string, createdAt:string}[]>([]);
 
   useEffect(() => {
     setCustomSession(getSession());
     setIsPro(localStorage.getItem('prepbite-is-pro') === 'true');
-    // Load persisted reviews from localStorage
-    try {
-      const saved = localStorage.getItem('prepbite-reviews');
-      if (saved) setLocalReviews(JSON.parse(saved));
-    } catch {}
+    // Load reviews from global API
+    setReviewsLoading(true);
+    fetch('/api/reviews')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          // Normalize API shape to component shape
+          setLocalReviews(data.map((r: any) => ({
+            id: r.id,
+            name: r.userName,
+            userName: r.userName,
+            stars: r.rating,
+            rating: r.rating,
+            text: r.comment,
+            comment: r.comment,
+            owner: r.owner,
+            createdAt: r.createdAt,
+          })));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setReviewsLoading(false));
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       if (searchParams.get('login') === 'true') {
@@ -137,24 +155,36 @@ export default function LandingPage() {
     if (!reviewText.trim() || reviewStars === 0) return;
     setReviewSubmitting(true);
     try {
-      await fetch('/api/email', {
+      const userEmail = customSession?.email || oauthSession?.user?.email || '';
+      const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'REVIEW',
-          payload: { name: displayName, email: customSession?.email || oauthSession?.user?.email || guestEmail || 'None', stars: reviewStars, review: reviewText }
+          userName: displayName,
+          userEmail,
+          rating: reviewStars,
+          comment: reviewText,
         })
       });
+      if (!res.ok) throw new Error('Failed to save review');
+      const saved = await res.json();
+      // Add to top of list immediately without refetch
+      setLocalReviews(prev => [{
+        id: saved.id,
+        name: saved.userName,
+        userName: saved.userName,
+        stars: saved.rating,
+        rating: saved.rating,
+        text: saved.comment,
+        comment: saved.comment,
+        owner: saved.owner,
+        createdAt: saved.createdAt,
+      }, ...prev]);
       setReviewSuccess(true);
-      const newReviews = [{ name: displayName, stars: reviewStars, text: reviewText, owner: displayName }, ...localReviews];
-      setLocalReviews(newReviews);
-      // Persist to localStorage so they survive refresh
-      localStorage.setItem('prepbite-reviews', JSON.stringify(newReviews));
       setReviewText('');
       setReviewStars(0);
-      setGuestEmail('');
       setTimeout(() => setReviewSuccess(false), 3000);
-    } catch { alert('Failed to submit review'); }
+    } catch { alert('Failed to submit review. Please try again.'); }
     setReviewSubmitting(false);
   };
 
@@ -501,7 +531,9 @@ export default function LandingPage() {
 
           {showReviewsDropdown && (
             <div className="animate-slide-up" style={{ marginBottom: '3rem' }}>
-              {localReviews.length === 0 ? (
+              {reviewsLoading ? (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>Loading reviews…</div>
+              ) : localReviews.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
                   <div style={{ fontSize: '4rem', marginBottom: '1rem', opacity: 0.5 }}>📦</div>
                   <p style={{ color: 'var(--text-muted)' }}>No reviews yet. Be the first!</p>
@@ -511,7 +543,7 @@ export default function LandingPage() {
                   {localReviews.map((rev, i) => {
                     const isOwn = isLoggedIn && rev.owner === displayName;
                     return (
-                    <div key={i} className="review-card" style={{ position: 'relative' }}>
+                    <div key={rev.id || i} className="review-card" style={{ position: 'relative' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <div>
                           <strong style={{ color: 'var(--accent)', marginRight: '0.5rem' }}>{rev.name}</strong>
@@ -536,7 +568,7 @@ export default function LandingPage() {
                                 <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', borderRadius: 'var(--radius)' }} onClick={() => { setActiveReviewMenu(null); alert('Review reported. Thank you!'); }}>🚩 Report</button>
                               )}
                               {isOwn && (
-                                <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', borderRadius: 'var(--radius)' }} onClick={() => { setActiveReviewMenu(null); const updated = localReviews.filter((_, idx) => idx !== i); setLocalReviews(updated); localStorage.setItem('prepbite-reviews', JSON.stringify(updated)); }}>🗑️ Delete</button>
+                                <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', borderRadius: 'var(--radius)' }} onClick={async () => { setActiveReviewMenu(null); const reviewId = rev.id; fetch(`/api/reviews?id=${reviewId}`, { method: 'DELETE' }).catch(console.error); setLocalReviews(prev => prev.filter(r => r.id !== reviewId)); }}>🗑️ Delete</button>
                               )}
                             </div>
                           )}

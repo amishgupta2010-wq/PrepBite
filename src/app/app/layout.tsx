@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { getSession } from '../../lib/auth';
+import { getSession, logoutUser } from '../../lib/auth';
 import Tutorial from '../components/Tutorial';
 import UpgradeModal from '../components/UpgradeModal';
 import { isBetaTester } from '../../lib/betaTester';
@@ -391,23 +391,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowSignOutConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
-                // Purge local storage first, but PRESERVE prepbite-users so accounts aren't deleted
+                // Explicitly call logoutUser to clear the custom session from localStorage/sessionStorage
+                logoutUser();
+
+                // Remove ALL prepbite keys except: user database, reviews, and tutorial-done flag
+                // (tutorial-done stays so returning users don't get the tutorial again)
+                const KEEP = new Set(['prepbite-users', 'prepbite-reviews', 'prepbite-tutorial-done']);
                 const keysToRemove: string[] = [];
                 for (let i = 0; i < localStorage.length; i++) {
                   const key = localStorage.key(i);
-                  if (key && key.startsWith('prepbite-') && key !== 'prepbite-users' && key !== 'prepbite-reviews') {
+                  if (key && key.startsWith('prepbite-') && !KEEP.has(key)) {
                     keysToRemove.push(key);
                   }
                 }
                 keysToRemove.forEach(k => localStorage.removeItem(k));
                 sessionStorage.clear();
-                
-                // Force clear all cookies on the client side
-                document.cookie.split(";").forEach(function(c) { 
-                  document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+
+                // Force-expire all cookies
+                document.cookie.split(';').forEach(c => {
+                  document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
                 });
-                
-                // Call client-side signOut from next-auth/react to clear session state and redirect
+
+                // NextAuth sign-out clears the server-side JWT / session cookie
                 await signOut({ callbackUrl: '/' });
               }}>Yep!</button>
             </div>

@@ -2,76 +2,80 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { getUserByEmail, registerUser } from '@/lib/auth';
 import { checkAndActivatePro } from '@/lib/proUsers';
 
 export default function AuthCallbackPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     if (status === 'loading') return;
 
     if (status === 'unauthenticated') {
-      router.push('/');
+      router.replace('/');
       return;
     }
 
-    if (session?.user?.email) {
-      const email = session.user.email;
-
-      // First: check if this email already exists in our user database (any sign-up method)
-      const existingUser = getUserByEmail(email);
-
-      if (existingUser) {
-        // User already exists → restore session and go straight to app
-        const sessionData = JSON.stringify({
-          userId: existingUser.id,
-          username: existingUser.username,
-          email: existingUser.email,
-          gender: existingUser.gender,
-        });
-        localStorage.setItem('prepbite-session', sessionData);
-        localStorage.setItem('prepbite-remember-me', 'true');
-        checkAndActivatePro(email);
-        router.replace('/app');
-        return;
-      }
-
-      // Second: check if they have onboarding data (account set up but users array cleared)
-      const onboardingRaw = localStorage.getItem('prepbite-onboarding');
-      if (onboardingRaw) {
-        try {
-          const ob = JSON.parse(onboardingRaw);
-          if (ob.email === email || ob.name) {
-            const name = ob.name || session.user.name || email.split('@')[0];
-            const gender = ob.gender || 'other';
-            registerUser(name, email, '', gender, true).then((result) => {
-              const user = result.user;
-              if (user) {
-                localStorage.setItem('prepbite-session', JSON.stringify({
-                  userId: user.id,
-                  username: user.username,
-                  email: user.email,
-                  gender: user.gender,
-                }));
-                localStorage.setItem('prepbite-remember-me', 'true');
-              }
-              checkAndActivatePro(email);
-              router.replace('/app');
-            });
-            return;
-          }
-        } catch {}
-      }
-
-      // Truly new user → go to onboarding
-      router.replace('/onboarding?from=google');
-    } else {
-      router.push('/');
+    if (!session?.user?.email) {
+      router.replace('/');
+      return;
     }
+
+    const email = session.user.email;
+
+    // ── Step 1: Check if user already exists in our local DB ──
+    const existingUser = getUserByEmail(email);
+
+    if (existingUser) {
+      // Restore custom session so getSession() works throughout the app
+      const sessionData = {
+        userId: existingUser.id,
+        username: existingUser.username,
+        email: existingUser.email,
+        gender: existingUser.gender,
+      };
+      localStorage.setItem('prepbite-session', JSON.stringify(sessionData));
+      localStorage.setItem('prepbite-remember-me', 'true');
+
+      // Mark tutorial as done so returning users never see it again
+      localStorage.setItem('prepbite-tutorial-done', 'true');
+
+      checkAndActivatePro(email);
+      router.replace('/app');
+      return;
+    }
+
+    // ── Step 2: Onboarding data exists but users array was cleared ──
+    const onboardingRaw = localStorage.getItem('prepbite-onboarding');
+    if (onboardingRaw) {
+      try {
+        const ob = JSON.parse(onboardingRaw);
+        const name = ob.name || session.user.name || email.split('@')[0];
+        const gender = ob.gender || 'other';
+
+        registerUser(name, email, '', gender, true).then((result) => {
+          if (result.user) {
+            localStorage.setItem('prepbite-session', JSON.stringify({
+              userId: result.user.id,
+              username: result.user.username,
+              email: result.user.email,
+              gender: result.user.gender,
+            }));
+            localStorage.setItem('prepbite-remember-me', 'true');
+          }
+          // Mark tutorial done for recovered accounts too
+          localStorage.setItem('prepbite-tutorial-done', 'true');
+          checkAndActivatePro(email);
+          router.replace('/app');
+        }).catch(() => router.replace('/onboarding?from=google'));
+        return;
+      } catch {}
+    }
+
+    // ── Step 3: Brand new user → go to onboarding ──
+    router.replace('/onboarding?from=google');
   }, [session, status, router]);
 
   return (
@@ -82,21 +86,19 @@ export default function AuthCallbackPage() {
       justifyContent: 'center',
       background: 'var(--bg-primary, #0A0A0A)',
       color: 'var(--text-primary, #FAFAFA)',
-      fontFamily: 'Inter, sans-serif'
+      fontFamily: 'Inter, sans-serif',
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-        <div className="spinner" style={{
+        <div style={{
           width: '40px', height: '40px',
           border: '4px solid rgba(255,255,255,0.1)',
           borderTopColor: 'var(--accent, #00E676)',
           borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
+          animation: 'spin 0.9s linear infinite',
         }} />
-        <p>Signing you in...</p>
+        <p style={{ color: 'var(--text-secondary, #aaa)', fontSize: '0.95rem' }}>Signing you in…</p>
       </div>
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
