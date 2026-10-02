@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { sendMail } from '@/lib/mail';
 
 // In-memory fallback for serverless environments
@@ -66,10 +64,11 @@ export async function POST(req: NextRequest) {
     `;
     const toEmail = process.env.GMAIL_USER;
     if (toEmail && process.env.GMAIL_APP_PASSWORD) {
-      // Fire and forget (don't await)
-      sendMail(toEmail, subject, html).catch(emailErr => {
+      try {
+        await sendMail(toEmail, subject, html);
+      } catch (emailErr) {
         console.error('Review email notification failed:', emailErr);
-      });
+      }
     }
 
     return NextResponse.json(newReview, { status: 201 });

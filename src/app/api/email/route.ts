@@ -46,9 +46,14 @@ export async function POST(req: Request) {
 
     const toEmail = process.env.GMAIL_USER;
     if (toEmail && process.env.GMAIL_APP_PASSWORD) {
-      sendMail(toEmail, subject, html, text).catch(emailErr => {
+      try {
+        await sendMail(toEmail, subject, html, text);
+      } catch (emailErr) {
         console.error('Email helper failed:', emailErr);
-      });
+        // Don't fail the API response for email errors
+      }
+    } else {
+      console.warn('Email not configured: GMAIL_USER or GMAIL_APP_PASSWORD missing');
     }
     return NextResponse.json({ success: true });
 
