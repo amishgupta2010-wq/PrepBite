@@ -50,7 +50,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       document.documentElement.removeAttribute('data-theme');
     }
     
-    const ob = JSON.parse(localStorage.getItem('prepbite-onboarding') || '{}');
+    const rawOb = localStorage.getItem('prepbite-onboarding');
+    const ob = rawOb ? JSON.parse(rawOb) : null;
     setUserData(ob);
     setIsPro(localStorage.getItem('prepbite-is-pro') === 'true' || isBetaTester());
 
@@ -176,7 +177,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             
             <div style={{ display: 'none' }} className="header-username">
               <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                {userData?.name || session?.user?.name || 'User'}
+                {userData?.name || session?.user?.name || null}
               </span>
               {isPro && (
                 <span style={{
@@ -334,7 +335,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       </div>
                     ) : (
                       <span style={{ fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }} onClick={() => { setEditingField('name'); setEditValue(userData?.name || ''); }}>
-                        {userData?.name || 'User'} <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>✎</span>
+                        {userData?.name || null} <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>✎</span>
                       </span>
                     )}
                   </div>
@@ -411,7 +412,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 await signOut({ redirect: false });
 
                 // 3. Force clean document redirect
-                window.location.replace("/");
+                window.location.href = "/";
               }}>Yep!</button>
             </div>
           </div>

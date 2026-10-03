@@ -84,7 +84,7 @@ export default function LandingPage() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showSignIn]);
 
-  const isLoggedIn = !!oauthSession || !!customSession;
+  const isLoggedIn = !!oauthSession?.user || !!customSession?.email;
   const displayName = customSession?.username || oauthSession?.user?.name || null;
   const gender = customSession?.gender || 'other';
 
