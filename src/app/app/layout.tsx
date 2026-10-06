@@ -50,8 +50,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       document.documentElement.removeAttribute('data-theme');
     }
     
-    const rawOb = localStorage.getItem('prepbite-onboarding');
-    const ob = rawOb ? JSON.parse(rawOb) : null;
+    const userEmail = customSession?.email || (session?.user as any)?.email;
+    let ob = null;
+    if (userEmail) {
+      try {
+        const accounts = JSON.parse(localStorage.getItem('prepbite_registered_accounts') || '[]');
+        const existingAccount = accounts.find((acc: any) => acc.email.toLowerCase() === userEmail.toLowerCase());
+        if (existingAccount && existingAccount.questionAnswers) {
+          ob = existingAccount.questionAnswers;
+          // Hydrate the legacy key for backward compatibility for child pages
+          localStorage.setItem('prepbite-onboarding', JSON.stringify(ob));
+        }
+      } catch (e) {}
+    }
+    
+    // Fallback if not found in registry
+    if (!ob) {
+      const rawOb = localStorage.getItem('prepbite-onboarding');
+      ob = rawOb ? JSON.parse(rawOb) : null;
+    }
+
+    // Guard: Redirect incomplete profiles back to onboarding
+    if (!ob && (customSession || session)) {
+      router.replace('/onboarding');
+      return;
+    }
+
     setUserData(ob);
     setIsPro(localStorage.getItem('prepbite-is-pro') === 'true' || isBetaTester());
 
@@ -395,24 +419,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowSignOutConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
-                // 1. Wipe all local/session storage keys
-                localStorage.removeItem("prepbite_active_session");
-                localStorage.removeItem("prepbite_guest");
-                localStorage.removeItem("guest_user");
-                
-                // Clear everything except registered accounts & reviews
-                const registered = localStorage.getItem("prepbite_registered_accounts");
-                const reviews = localStorage.getItem("prepbite_reviews");
-                localStorage.clear();
-                sessionStorage.clear();
-                if (registered) localStorage.setItem("prepbite_registered_accounts", registered);
-                if (reviews) localStorage.setItem("prepbite_reviews", reviews);
+                try {
+                  // Preserve permanent registries
+                  const registered = localStorage.getItem("prepbite_registered_accounts");
+                  const reviews = localStorage.getItem("prepbite_reviews");
 
-                // 2. NextAuth SignOut
-                await signOut({ redirect: false });
+                  localStorage.clear();
+                  sessionStorage.clear();
 
-                // 3. Force clean document redirect
-                window.location.href = "/";
+                  if (registered) localStorage.setItem("prepbite_registered_accounts", registered);
+                  if (reviews) localStorage.setItem("prepbite_reviews", reviews);
+
+                  // Sign out next-auth WITHOUT letting it redirect (we handle it ourselves)
+                  await signOut({ redirect: false });
+                } catch (err) {
+                  console.error("Sign-out error:", err);
+                } finally {
+                  // Always hard-navigate so React state is fully destroyed
+                  window.location.href = "/";
+                }
               }}>Yep!</button>
             </div>
           </div>

@@ -50,7 +50,7 @@ export default function Tutorial() {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('prepbite-trigger-tutorial', onTrigger);
     };
-  }, [startTutorial]);
+  }, [startTutorial, session]);
 
   const updatePosition = useCallback((stepIdx: number) => {
     if (stepIdx >= STEPS.length) return;

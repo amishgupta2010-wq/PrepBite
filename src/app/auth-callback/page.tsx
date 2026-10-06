@@ -1,7 +1,6 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { getUserByEmail, registerUser } from '@/lib/auth';
 import { checkAndActivatePro } from '@/lib/proUsers';
@@ -54,7 +53,6 @@ export function markTutorialSeen(email: string) {
 
 export default function AuthCallbackPage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -101,7 +99,7 @@ export default function AuthCallbackPage() {
 
     // Explicit user snippet logic:
     const accounts = JSON.parse(localStorage.getItem("prepbite_registered_accounts") || "[]");
-    const existingUser = accounts.find((acc: any) => acc.email === email);
+    const existingUser = accounts.find((acc: any) => acc.email.toLowerCase() === email.toLowerCase());
 
     if (existingUser && existingUser.hasCompletedOnboarding) {
       // Existing user: Jump DIRECTLY to dashboard, skip questions and tutorial

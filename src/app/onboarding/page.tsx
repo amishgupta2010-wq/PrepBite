@@ -242,6 +242,24 @@ export default function OnboardingPage() {
         await registerUser(data.name.trim(), email, data.password, data.gender || 'other', isOAuth);
         localStorage.setItem('prepbite-onboarding', JSON.stringify({ ...data, email }));
         
+        // Save questionAnswers directly into prepbite_registered_accounts
+        const accounts = JSON.parse(localStorage.getItem("prepbite_registered_accounts") || "[]");
+        const idx = accounts.findIndex((a: any) => a.email.toLowerCase() === email.toLowerCase());
+        if (idx !== -1) {
+          accounts[idx].questionAnswers = { ...data, email };
+          accounts[idx].hasCompletedOnboarding = true;
+          localStorage.setItem("prepbite_registered_accounts", JSON.stringify(accounts));
+        } else {
+          accounts.push({
+            email: email.toLowerCase(),
+            tier: "free",
+            hasCompletedOnboarding: true,
+            hasSeenTutorial: false,
+            questionAnswers: { ...data, email }
+          });
+          localStorage.setItem("prepbite_registered_accounts", JSON.stringify(accounts));
+        }
+
         // Fire email after successful account setup
         fetch('/api/email', {
           method: 'POST',
@@ -260,9 +278,6 @@ export default function OnboardingPage() {
         if (isOAuth) {
           await update({ onboardingCompleted: true });
         }
-
-        // Mark onboarding complete in local registry
-        markOnboardingComplete(email);
 
         checkAndActivatePro(email);
         router.push('/dashboard');
