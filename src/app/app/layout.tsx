@@ -418,27 +418,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <p style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>You sure you wanna sign out?</p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowSignOutConfirm(false)}>Nah!</button>
-              <button className="tutorial-btn-yep" onClick={async () => {
-                try {
-                  // Preserve permanent registries
-                  const registered = localStorage.getItem("prepbite_registered_accounts");
-                  const reviews = localStorage.getItem("prepbite_reviews");
+              <button 
+                className="tutorial-btn-yep" 
+                onClick={async () => {
+                  try {
+                    // 1. Preserve essential persistent data
+                    const registered = localStorage.getItem("prepbite_registered_accounts");
+                    const reviews = localStorage.getItem("prepbite_reviews");
+                    const users = localStorage.getItem("prepbite-users"); // Preserve saved user profile/answers
 
-                  localStorage.clear();
-                  sessionStorage.clear();
+                    // 2. Clear active session tokens only
+                    localStorage.removeItem("prepbite-session");
+                    localStorage.removeItem("prepbite-remember-me");
+                    sessionStorage.clear();
 
-                  if (registered) localStorage.setItem("prepbite_registered_accounts", registered);
-                  if (reviews) localStorage.setItem("prepbite_reviews", reviews);
+                    // 3. Re-save persistent data
+                    if (registered) localStorage.setItem("prepbite_registered_accounts", registered);
+                    if (reviews) localStorage.setItem("prepbite_reviews", reviews);
+                    if (users) localStorage.setItem("prepbite-users", users);
+                  } catch (err) {
+                    console.error("Sign-out storage error:", err);
+                  }
 
-                  // Sign out next-auth WITHOUT letting it redirect (we handle it ourselves)
-                  await signOut({ redirect: false });
-                } catch (err) {
-                  console.error("Sign-out error:", err);
-                } finally {
-                  // Always hard-navigate so React state is fully destroyed
-                  window.location.href = "/";
-                }
-              }}>Yep!</button>
+                  // 4. Let NextAuth completely flush cookies and handle the redirect natively
+                  await signOut({ callbackUrl: "/" });
+                }}
+              >
+                Yep!
+              </button>
             </div>
           </div>
         </div>

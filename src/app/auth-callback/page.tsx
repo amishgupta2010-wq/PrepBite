@@ -69,58 +69,45 @@ export default function AuthCallbackPage() {
 
     const email = session.user.email;
 
-    // Restore or create a local session so customSession is not null
-    let existingDbUser = getUserByEmail(email);
-    if (!existingDbUser) {
-      // Re-create silently if not found so local session works
-      registerUser(session.user.name || email.split('@')[0], email, '', 'other', true).then(res => {
+    // Await-safe wrapper because useEffect cannot be async
+    (async () => {
+      // Restore or create a local session so customSession is not null
+      let existingDbUser = getUserByEmail(email);
+      if (!existingDbUser) {
+        // Await registration so the user exists before we redirect
+        const res = await registerUser(session.user!.name || email.split('@')[0], email, '', 'other', true);
         if (res.user) existingDbUser = res.user;
-        if (existingDbUser) {
-          localStorage.setItem('prepbite-session', JSON.stringify({
-            userId: existingDbUser.id,
-            username: existingDbUser.username,
-            email: existingDbUser.email,
-            gender: existingDbUser.gender,
-          }));
-          localStorage.setItem('prepbite-remember-me', 'true');
-        }
-      });
-    } else {
-      localStorage.setItem('prepbite-session', JSON.stringify({
-        userId: existingDbUser.id,
-        username: existingDbUser.username,
-        email: existingDbUser.email,
-        gender: existingDbUser.gender,
-      }));
-      localStorage.setItem('prepbite-remember-me', 'true');
-    }
-    
-    checkAndActivatePro(email);
+      }
 
-    // Explicit user snippet logic:
-    const accounts = JSON.parse(localStorage.getItem("prepbite_registered_accounts") || "[]");
-    const existingUser = accounts.find((acc: any) => acc.email.toLowerCase() === email.toLowerCase());
+      if (existingDbUser) {
+        localStorage.setItem('prepbite-session', JSON.stringify({
+          userId: existingDbUser.id,
+          username: existingDbUser.username,
+          email: existingDbUser.email,
+          gender: existingDbUser.gender,
+        }));
+        localStorage.setItem('prepbite-remember-me', 'true');
+      }
 
-    if (existingUser && existingUser.hasCompletedOnboarding) {
-      // Existing user: Jump DIRECTLY to dashboard, skip questions and tutorial
-      if (existingUser.hasSeenTutorial) {
+      checkAndActivatePro(email);
+
+      // Route based on registry
+      const existingAccount = findAccount(email);
+
+      if (existingAccount && existingAccount.hasCompletedOnboarding) {
+        // Existing user — suppress tutorial and go straight to dashboard
         localStorage.setItem('prepbite-tutorial-done', 'true');
+        window.location.replace('/app');
+      } else {
+        // New user — add to registry and send to onboarding
+        if (!existingAccount) {
+          const currentRegistry = getRegistry();
+          currentRegistry.push({ email, hasCompletedOnboarding: false, hasSeenTutorial: false, tier: 'free' });
+          saveRegistry(currentRegistry);
+        }
+        window.location.replace('/onboarding');
       }
-      window.location.replace("/app");
-      return;
-    } else {
-      // Brand new user: register them and proceed to onboarding
-      if (!existingUser) {
-        accounts.push({
-          email,
-          hasCompletedOnboarding: false,
-          hasSeenTutorial: false,
-          tier: "free",
-        });
-        localStorage.setItem("prepbite_registered_accounts", JSON.stringify(accounts));
-      }
-      window.location.replace("/onboarding");
-    }
+    })();
   }, [session, status]);
 
   return (
