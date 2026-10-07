@@ -423,12 +423,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 className="tutorial-btn-yep"
                 onClick={async () => {
                   try {
-                    // 1. Preserve persistent registries
+                    // 1. Preserve persistent lists
                     const registered = localStorage.getItem("prepbite_registered_accounts");
                     const reviews = localStorage.getItem("prepbite_reviews");
                     const users = localStorage.getItem("prepbite-users");
 
-                    // 2. Clear only session tokens — DO NOT wipe user records or Pro status
+                    // 2. Clear only local session tokens
                     localStorage.removeItem("prepbite-session");
                     localStorage.removeItem("prepbite-remember-me");
                     sessionStorage.clear();
@@ -436,13 +436,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     if (registered) localStorage.setItem("prepbite_registered_accounts", registered);
                     if (reviews) localStorage.setItem("prepbite_reviews", reviews);
                     if (users) localStorage.setItem("prepbite-users", users);
-                  } catch (err) {
-                    console.error("Sign out storage error:", err);
-                  }
 
-                  // 3. Allow NextAuth to call /api/auth/signout, invalidate the HttpOnly cookie,
-                  // and execute its own redirect back to the home page natively.
-                  await signOut({ callbackUrl: "/" });
+                    // 3. Auth.js v5 sign-out fetch with proper CSRF handling:
+                    // First get the CSRF token
+                    const csrfRes = await fetch("/api/auth/csrf");
+                    const { csrfToken } = await csrfRes.json();
+
+                    // Submit signout POST to Auth.js endpoint
+                    await fetch("/api/auth/signout", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                      },
+                      body: new URLSearchParams({
+                        csrfToken: csrfToken,
+                        callbackUrl: "/",
+                      }),
+                    });
+                  } catch (err) {
+                    console.error("Sign out error:", err);
+                  } finally {
+                    // Hard navigate to root
+                    window.location.href = "/";
+                  }
                 }}
               >
                 Yep!
@@ -465,14 +481,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowDeleteConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
-                // Delete local account data
-                const { deleteAccount } = await import('../../lib/auth');
-                deleteAccount();
-                // Call server-side endpoint to expire all auth cookies
-                await fetch('/api/user/delete', { method: 'DELETE', body: JSON.stringify({}) });
+                try {
+                  // Delete local account data
+                  const { deleteAccount } = await import('../../lib/auth');
+                  deleteAccount();
+                  // Call server-side endpoint to expire all auth cookies
+                  await fetch('/api/user/delete', { method: 'DELETE', body: JSON.stringify({}) });
 
-                // Use the v5 Server Action to correctly clear Auth.js cookies and redirect
-                await serverSignOut();
+                  // Auth.js v5 sign-out fetch with proper CSRF handling:
+                  const csrfRes = await fetch("/api/auth/csrf");
+                  const { csrfToken } = await csrfRes.json();
+
+                  await fetch("/api/auth/signout", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: new URLSearchParams({
+                      csrfToken: csrfToken,
+                      callbackUrl: "/",
+                    }),
+                  });
+                } catch (err) {
+                  console.error("Delete account error:", err);
+                } finally {
+                  window.location.href = "/";
+                }
               }}>Yep!</button>
             </div>
           </div>
