@@ -84,8 +84,9 @@ export default function LandingPage() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showSignIn]);
 
-  const isLoggedIn = !!oauthSession?.user || !!customSession?.email;
-  const displayName = customSession?.username || oauthSession?.user?.name || null;
+  // Only consider logged in if an email actually exists
+  const isLoggedIn = Boolean(oauthSession?.user?.email || customSession?.email);
+  const displayName = customSession?.username || oauthSession?.user?.name || (oauthSession?.user?.email ? oauthSession.user.email.split('@')[0] : null);
   const gender = customSession?.gender || 'other';
 
   const genderAvatar = gender === 'male' ? '👨' : gender === 'female' ? '👩' : '🧑';

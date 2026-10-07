@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
+import { handleSignOut as serverSignOut } from '../actions/auth';
 import { getSession, logoutUser } from '../../lib/auth';
 import Tutorial from '../components/Tutorial';
 import UpgradeModal from '../components/UpgradeModal';
@@ -421,27 +422,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <button 
                 className="tutorial-btn-yep" 
                 onClick={async () => {
-                  try {
-                    // 1. Preserve essential persistent data
-                    const registered = localStorage.getItem("prepbite_registered_accounts");
-                    const reviews = localStorage.getItem("prepbite_reviews");
-                    const users = localStorage.getItem("prepbite-users"); // Preserve saved user profile/answers
+                  // 1. Preserve persistent registries
+                  const registered = localStorage.getItem("prepbite_registered_accounts");
+                  const reviews = localStorage.getItem("prepbite_reviews");
+                  const users = localStorage.getItem("prepbite-users");
 
-                    // 2. Clear active session tokens only
-                    localStorage.removeItem("prepbite-session");
-                    localStorage.removeItem("prepbite-remember-me");
-                    sessionStorage.clear();
+                  // 2. Wipe all local + session storage
+                  localStorage.clear();
+                  sessionStorage.clear();
 
-                    // 3. Re-save persistent data
-                    if (registered) localStorage.setItem("prepbite_registered_accounts", registered);
-                    if (reviews) localStorage.setItem("prepbite_reviews", reviews);
-                    if (users) localStorage.setItem("prepbite-users", users);
-                  } catch (err) {
-                    console.error("Sign-out storage error:", err);
-                  }
+                  // 3. Restore permanent data
+                  if (registered) localStorage.setItem("prepbite_registered_accounts", registered);
+                  if (reviews) localStorage.setItem("prepbite_reviews", reviews);
+                  if (users) localStorage.setItem("prepbite-users", users);
 
-                  // 4. Let NextAuth completely flush cookies and handle the redirect natively
-                  await signOut({ callbackUrl: "/" });
+                  // 4. Call the v5 Server Action — it calls signOut({ redirectTo: "/" })
+                  //    from the root auth.ts, which correctly clears Auth.js JWT cookies
+                  await serverSignOut();
                 }}
               >
                 Yep!
@@ -469,14 +466,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 deleteAccount();
                 // Call server-side endpoint to expire all auth cookies
                 await fetch('/api/user/delete', { method: 'DELETE', body: JSON.stringify({}) });
-                
-                // Force clear all cookies on the client side
-                document.cookie.split(";").forEach(function(c) { 
-                  document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-                });
 
-                // Call client-side signOut to clear Google session state and redirect
-                await signOut({ callbackUrl: '/' });
+                // Use the v5 Server Action to correctly clear Auth.js cookies and redirect
+                await serverSignOut();
               }}>Yep!</button>
             </div>
           </div>
