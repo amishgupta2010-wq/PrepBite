@@ -436,12 +436,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     if (registered) localStorage.setItem("prepbite_registered_accounts", registered);
                     if (reviews) localStorage.setItem("prepbite_reviews", reviews);
                     if (users) localStorage.setItem("prepbite-users", users);
+
+                    // 3. Destroy HttpOnly cookie on the server
+                    await serverSignOut();
                   } catch (err) {
                     console.error("Storage error during sign-out:", err);
+                  } finally {
+                    // 4. Force hard browser reload to root (flushes React memory & loads unauthenticated state)
+                    window.location.href = "/";
                   }
-
-                  // 3. Destroy HttpOnly cookie on the server and redirect to "/"
-                  await serverSignOut();
                 }}
               >
                 Yep!
@@ -490,10 +493,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   // Call server-side endpoint to clean up any server state if needed
                   await fetch('/api/user/delete', { method: 'DELETE', body: JSON.stringify({}) });
                   
-                  // 3. Destroy HttpOnly cookie on the server and redirect to "/"
+                  // 3. Destroy HttpOnly cookie on the server
                   await serverSignOut();
                 } catch (err) {
                   console.error("Delete account error:", err);
+                } finally {
+                  // 4. Force hard browser reload to root (flushes React memory & loads unauthenticated state)
+                  window.location.href = "/";
                 }
               }}>Yep!</button>
             </div>
