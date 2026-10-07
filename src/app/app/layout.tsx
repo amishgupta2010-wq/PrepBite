@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { handleSignOut as serverSignOut } from '../actions/auth';
+import { handleServerSignOut as serverSignOut } from '../actions/auth';
 import { getSession, logoutUser } from '../../lib/auth';
 import Tutorial from '../components/Tutorial';
 import UpgradeModal from '../components/UpgradeModal';
@@ -423,12 +423,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 className="tutorial-btn-yep"
                 onClick={async () => {
                   try {
-                    // 1. Preserve persistent lists
+                    // 1. Preserve critical storage
                     const registered = localStorage.getItem("prepbite_registered_accounts");
                     const reviews = localStorage.getItem("prepbite_reviews");
                     const users = localStorage.getItem("prepbite-users");
 
-                    // 2. Clear only local session tokens
+                    // 2. Remove active session tokens only
                     localStorage.removeItem("prepbite-session");
                     localStorage.removeItem("prepbite-remember-me");
                     sessionStorage.clear();
@@ -436,29 +436,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     if (registered) localStorage.setItem("prepbite_registered_accounts", registered);
                     if (reviews) localStorage.setItem("prepbite_reviews", reviews);
                     if (users) localStorage.setItem("prepbite-users", users);
-
-                    // 3. Auth.js v5 sign-out fetch with proper CSRF handling:
-                    // First get the CSRF token
-                    const csrfRes = await fetch("/api/auth/csrf");
-                    const { csrfToken } = await csrfRes.json();
-
-                    // Submit signout POST to Auth.js endpoint
-                    await fetch("/api/auth/signout", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/x-www-form-urlencoded",
-                      },
-                      body: new URLSearchParams({
-                        csrfToken: csrfToken,
-                        callbackUrl: "/",
-                      }),
-                    });
                   } catch (err) {
-                    console.error("Sign out error:", err);
-                  } finally {
-                    // Hard navigate to root
-                    window.location.href = "/";
+                    console.error("Storage error during sign-out:", err);
                   }
+
+                  // 3. Destroy HttpOnly cookie on the server and redirect to "/"
+                  await serverSignOut();
                 }}
               >
                 Yep!
@@ -482,30 +465,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <button className="tutorial-btn-nah" onClick={() => setShowDeleteConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
                 try {
-                  // Delete local account data
+                  // Delete local account data from prepbite-users, but keep reviews intact
                   const { deleteAccount } = await import('../../lib/auth');
                   deleteAccount();
-                  // Call server-side endpoint to expire all auth cookies
+                  
+                  // Also remove from registry so re-registering makes them a new user
+                  const registered = localStorage.getItem("prepbite_registered_accounts");
+                  if (registered) {
+                    try {
+                      const sessionRaw = localStorage.getItem("prepbite-session");
+                      if (sessionRaw) {
+                        const sess = JSON.parse(sessionRaw);
+                        if (sess.email) {
+                          const accounts = JSON.parse(registered);
+                          const filtered = accounts.filter((a: any) => a.email.toLowerCase() !== sess.email.toLowerCase());
+                          localStorage.setItem("prepbite_registered_accounts", JSON.stringify(filtered));
+                        }
+                      }
+                    } catch (e) {
+                      console.error("Registry cleanup error:", e);
+                    }
+                  }
+
+                  // Call server-side endpoint to clean up any server state if needed
                   await fetch('/api/user/delete', { method: 'DELETE', body: JSON.stringify({}) });
-
-                  // Auth.js v5 sign-out fetch with proper CSRF handling:
-                  const csrfRes = await fetch("/api/auth/csrf");
-                  const { csrfToken } = await csrfRes.json();
-
-                  await fetch("/api/auth/signout", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/x-www-form-urlencoded",
-                    },
-                    body: new URLSearchParams({
-                      csrfToken: csrfToken,
-                      callbackUrl: "/",
-                    }),
-                  });
+                  
+                  // 3. Destroy HttpOnly cookie on the server and redirect to "/"
+                  await serverSignOut();
                 } catch (err) {
                   console.error("Delete account error:", err);
-                } finally {
-                  window.location.href = "/";
                 }
               }}>Yep!</button>
             </div>

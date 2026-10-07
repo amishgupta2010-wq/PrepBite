@@ -12,6 +12,7 @@ interface RegisteredAccount {
   tier: 'free' | 'pro';
   hasCompletedOnboarding: boolean;
   hasSeenTutorial: boolean;
+  questionAnswers?: Record<string, any>;
 }
 
 function getRegistry(): RegisteredAccount[] {
