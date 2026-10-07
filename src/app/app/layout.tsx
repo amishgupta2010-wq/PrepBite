@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { handleSignOut as serverSignOut } from '../actions/auth';
 import { getSession, logoutUser } from '../../lib/auth';
 import Tutorial from '../components/Tutorial';
@@ -419,26 +419,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <p style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>You sure you wanna sign out?</p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button className="tutorial-btn-nah" onClick={() => setShowSignOutConfirm(false)}>Nah!</button>
-              <button 
-                className="tutorial-btn-yep" 
+              <button
+                className="tutorial-btn-yep"
                 onClick={async () => {
-                  // 1. Preserve persistent registries
-                  const registered = localStorage.getItem("prepbite_registered_accounts");
-                  const reviews = localStorage.getItem("prepbite_reviews");
-                  const users = localStorage.getItem("prepbite-users");
+                  try {
+                    // 1. Preserve persistent registries
+                    const registered = localStorage.getItem("prepbite_registered_accounts");
+                    const reviews = localStorage.getItem("prepbite_reviews");
+                    const users = localStorage.getItem("prepbite-users");
 
-                  // 2. Wipe all local + session storage
-                  localStorage.clear();
-                  sessionStorage.clear();
+                    // 2. Clear only session tokens — DO NOT wipe user records or Pro status
+                    localStorage.removeItem("prepbite-session");
+                    localStorage.removeItem("prepbite-remember-me");
+                    sessionStorage.clear();
 
-                  // 3. Restore permanent data
-                  if (registered) localStorage.setItem("prepbite_registered_accounts", registered);
-                  if (reviews) localStorage.setItem("prepbite_reviews", reviews);
-                  if (users) localStorage.setItem("prepbite-users", users);
+                    if (registered) localStorage.setItem("prepbite_registered_accounts", registered);
+                    if (reviews) localStorage.setItem("prepbite_reviews", reviews);
+                    if (users) localStorage.setItem("prepbite-users", users);
+                  } catch (err) {
+                    console.error("Sign out storage error:", err);
+                  }
 
-                  // 4. Call the v5 Server Action — it calls signOut({ redirectTo: "/" })
-                  //    from the root auth.ts, which correctly clears Auth.js JWT cookies
-                  await serverSignOut();
+                  // 3. Allow NextAuth to call /api/auth/signout, invalidate the HttpOnly cookie,
+                  // and execute its own redirect back to the home page natively.
+                  await signOut({ callbackUrl: "/" });
                 }}
               >
                 Yep!
