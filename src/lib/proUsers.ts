@@ -9,6 +9,7 @@
 // Add Pro user emails here (all lowercase)
 const PRO_EMAILS: string[] = [
   'amishgupta2010@gmail.com',
+  'prepbite.support@gmail.com',
 ];
 
 /**

@@ -32,19 +32,26 @@ export async function POST(req: Request) {
         <p><strong>Review:</strong> ${payload.review}</p>
       `;
     } else if (type === 'ONBOARDING_REFERRAL') {
-      subject = `New PrepBite Member: ${payload.name}`;
-      text = `New Member Registered!\n\nName: ${payload.name}\nEmail: ${payload.email}\nHow did they hear about us: ${payload.referral}`;
+      subject = `New PrepBite Member Onboarding: ${payload.name || payload.email}`;
+      text = `New Member Registered!\n\nName: ${payload.name || 'Anonymous'}\nEmail: ${payload.email}\nGender: ${payload.gender || 'Not specified'}\nCurrent Weight: ${payload.currentWeight || 'N/A'}\nIdeal Weight: ${payload.idealWeight || 'N/A'}\nHeight: ${payload.height || 'N/A'}\nExercise Days: ${payload.exerciseDays || 'N/A'}\nTimeline: ${payload.timeline || 'N/A'}\nLanguage: ${payload.language || 'en'}\nHow did they hear about us: ${payload.referral || 'Not specified'}`;
       html = `
-        <h3>New PrepBite Member</h3>
-        <p><strong>Name:</strong> ${payload.name}</p>
+        <h3>New PrepBite Member Registered</h3>
+        <p><strong>Name:</strong> ${payload.name || 'Anonymous'}</p>
         <p><strong>Email:</strong> ${payload.email}</p>
-        <p><strong>How did they hear about us:</strong> ${payload.referral}</p>
+        <p><strong>Gender:</strong> ${payload.gender || 'Not specified'}</p>
+        <p><strong>Current Weight:</strong> ${payload.currentWeight || 'N/A'}</p>
+        <p><strong>Ideal Weight:</strong> ${payload.idealWeight || 'N/A'}</p>
+        <p><strong>Height:</strong> ${payload.height || 'N/A'}</p>
+        <p><strong>Exercise Days:</strong> ${payload.exerciseDays || 'N/A'}</p>
+        <p><strong>Goal Timeline:</strong> ${payload.timeline || 'N/A'}</p>
+        <p><strong>Language:</strong> ${payload.language || 'en'}</p>
+        <p><strong>How did they hear about us:</strong> ${payload.referral || 'Not specified'}</p>
       `;
     } else {
       return NextResponse.json({ error: 'Invalid email type' }, { status: 400 });
     }
 
-    const toEmail = process.env.GMAIL_USER;
+    const toEmail = process.env.GMAIL_USER || 'PrepBite.support@gmail.com';
     if (toEmail && process.env.GMAIL_APP_PASSWORD) {
       try {
         await sendMail(toEmail, subject, html, text);

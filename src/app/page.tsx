@@ -56,7 +56,6 @@ export default function LandingPage() {
 
   useEffect(() => {
     setCustomSession(getSession());
-    setIsPro(localStorage.getItem('prepbite-is-pro') === 'true');
     // Load reviews from localStorage (persistent across refreshes)
     try {
       const stored = localStorage.getItem('prepbite_reviews');
@@ -72,6 +71,23 @@ export default function LandingPage() {
       }
     }
   }, []);
+
+  // Sync pro status when session is resolved
+  useEffect(() => {
+    const userEmail = customSession?.email || oauthSession?.user?.email;
+    if (userEmail) {
+      checkAndActivatePro(userEmail);
+      try {
+        const accounts = JSON.parse(localStorage.getItem('prepbite_registered_accounts') || '[]');
+        const acc = accounts.find((a: any) => a.email?.toLowerCase() === userEmail.toLowerCase());
+        if (acc?.tier === 'pro') {
+          setIsPro(true);
+          return;
+        }
+      } catch {}
+    }
+    setIsPro(localStorage.getItem('prepbite-is-pro') === 'true');
+  }, [oauthSession, customSession]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -285,10 +301,10 @@ export default function LandingPage() {
         <div className="lp-hero-glow" />
         <div className="lp-hero-grid" />
         <div className="lp-hero-content">
-          <div className="lp-badge">✨ Smart meal planning for everyone</div>
+          <div className="lp-badge">{"For anyone tired of asking \"what's for dinner?\""}</div>
           <h1 className="lp-hero-title">
-            Weekly Meal Planning &<br />
-            <span className="lp-gradient-text">Smart Grocery Lists</span> on Autopilot
+            Generating a 7-day meal plan in less than{' '}
+            <span style={{ color: '#10b981' }}>60 seconds</span>
           </h1>
           <p className="lp-motto">Less prep, better bites.</p>
           <p className="lp-hero-sub">
@@ -302,7 +318,7 @@ export default function LandingPage() {
               </button>
             ) : (
               <button className="lp-btn-cta lp-btn-dashboard" onClick={() => setShowSignIn(true)}>
-                SignUp/SignIn
+                Try it for free
               </button>
             )}
             <button className="lp-btn-ghost" onClick={() => scrollTo('features')}>
@@ -384,7 +400,7 @@ export default function LandingPage() {
           <h2 className="lp-section-title">Simple, transparent pricing</h2>
           <p className="lp-section-sub">Start free. Upgrade when you need more power.</p>
 
-          {isPro ? (
+          {isLoggedIn && isPro ? (
             /* Pro user: show benefits + thank-you */
             <div style={{ maxWidth: '520px', margin: '0 auto', textAlign: 'center' }}>
               <div className="lp-price-card lp-price-pro" style={{ marginBottom: '1.5rem' }}>
@@ -401,11 +417,11 @@ export default function LandingPage() {
                 </button>
               </div>
               <p style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--accent)', marginTop: '1rem' }}>
-                🙏 Thank you for choosing the Pro version!
+                Thank you for choosing the Pro version!
               </p>
             </div>
           ) : (
-            /* Free user: show normal pricing grid */
+            /* Free user / Not logged in: show normal pricing grid */
             <div className="lp-pricing-grid">
               {/* Free tier */}
               <div className="lp-price-card">
@@ -425,7 +441,7 @@ export default function LandingPage() {
                   </button>
                 ) : (
                   <button className="lp-btn-outline" style={{ width: '100%' }} onClick={() => setShowSignIn(true)}>
-                    SignUp/SignIn
+                    Try it for free
                   </button>
                 )}
               </div>
@@ -662,9 +678,12 @@ export default function LandingPage() {
             </button>
           ) : (
             <button className="lp-btn-cta lp-btn-sm" onClick={() => setShowSignIn(true)}>
-              SignUp/SignIn
+              Try it for free
             </button>
           )}
+        </div>
+        <div style={{ textAlign: 'center', marginTop: '1.25rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          Contact <a href="mailto:PrepBite.support@gmail.com" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>PrepBite.support@gmail.com</a> for help
         </div>
       </footer>
     </div>

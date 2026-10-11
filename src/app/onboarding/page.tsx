@@ -269,7 +269,14 @@ export default function OnboardingPage() {
             payload: {
               name: data.name.trim(),
               email: email,
-              referral: data.referralSource === 'other' ? data.customReferral : data.referralSource
+              referral: data.referralSource === 'other' ? data.customReferral : data.referralSource,
+              gender: data.gender || 'Not specified',
+              currentWeight: `${data.currentWeight} ${data.weightUnit}`,
+              idealWeight: `${data.idealWeight} ${data.weightUnit}`,
+              height: data.heightUnit === 'cm' ? `${data.currentHeight} cm` : `${Math.floor(data.currentHeight / 12)}ft ${data.currentHeight % 12}in`,
+              exerciseDays: data.exerciseDays !== null ? `${data.exerciseDays} days/week` : 'Not specified',
+              timeline: data.timelinePreset || (data.customTimeValue ? `${data.customTimeValue} ${data.customTimeUnit}` : 'Not specified'),
+              language: data.language || 'en'
             }
           })
         }).catch(console.error);
