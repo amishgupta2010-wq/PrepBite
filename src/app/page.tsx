@@ -27,6 +27,7 @@ export default function LandingPage() {
   const router = useRouter();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
+  const [pendingCheckout, setPendingCheckout] = useState(false);
   const [loginId, setLoginId] = useState('');
   const [loginPw, setLoginPw] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -127,7 +128,26 @@ export default function LandingPage() {
       });
       // Check if this user is a Pro user
       checkAndActivatePro(result.user!.email);
-      router.push('/app');
+      if (pendingCheckout) {
+        setPendingCheckout(false);
+        // Proceed to checkout now that user is signed in
+        setCheckoutLoading(true);
+        try {
+          const res = await fetch('/api/create-checkout-session', { method: 'POST' });
+          const data = await res.json();
+          if (data.checkout_url) {
+            window.location.href = data.checkout_url;
+          } else {
+            alert('Unable to start checkout. Please try again.');
+            setCheckoutLoading(false);
+          }
+        } catch {
+          alert('Unable to start checkout. Please try again.');
+          setCheckoutLoading(false);
+        }
+      } else {
+        router.push('/app');
+      }
     } else {
       setLoginError(result.error || 'Login failed.');
     }
@@ -195,6 +215,32 @@ export default function LandingPage() {
 
   const handleUpgrade = async () => {
     if (checkoutLoading) return;
+    // Require sign-in before going to checkout
+    if (!isLoggedIn) {
+      setPendingCheckout(true);
+      setShowSignIn(true);
+      return;
+    }
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch('/api/create-checkout-session', { method: 'POST' });
+      const data = await res.json();
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else {
+        alert('Unable to start checkout. Please try again.');
+        setCheckoutLoading(false);
+      }
+    } catch {
+      alert('Unable to start checkout. Please try again.');
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleCheckoutAfterGoogleSignIn = async () => {
+    // Called after Google OAuth redirect when pendingCheckout was set
+    if (!pendingCheckout) return;
+    setPendingCheckout(false);
     setCheckoutLoading(true);
     try {
       const res = await fetch('/api/create-checkout-session', { method: 'POST' });
@@ -267,7 +313,7 @@ export default function LandingPage() {
             {/* Google OAuth button */}
             <button
               className="lp-google-btn"
-              onClick={() => signIn('google', { callbackUrl: '/auth-callback' })}
+              onClick={() => signIn('google', { callbackUrl: pendingCheckout ? '/auth-callback?checkout=1' : '/auth-callback' })}
               style={{
                 width: '100%',
                 marginTop: '1.25rem',
@@ -301,12 +347,12 @@ export default function LandingPage() {
         <div className="lp-hero-glow" />
         <div className="lp-hero-grid" />
         <div className="lp-hero-content">
-          <div className="lp-badge">{"For anyone tired of asking \"what's for dinner?\""}</div>
+          <p className="lp-section-eyebrow">{"For anyone tired of asking \"what's for dinner?\""}</p>
           <h1 className="lp-hero-title">
             Generating a 7-day meal plan in less than{' '}
             <span style={{ color: '#10b981' }}>60 seconds</span>
           </h1>
-          <p className="lp-motto">Less prep, better bites.</p>
+          <p className="lp-motto" style={{ fontStyle: 'normal' }}>Less prep, better bites.</p>
           <p className="lp-hero-sub">
             Stop stressing over daily dinner decisions. Pick your preferences, generate
             customized 7-day plans, swap recipes instantly, and auto-sync missing ingredients.
@@ -374,7 +420,7 @@ export default function LandingPage() {
       {/* ─── 3-STEP WORKFLOW ─── */}
       <section className="lp-section" id="features">
         <div className="lp-section-inner">
-          <div className="lp-badge" style={{ margin: '0 auto 1rem' }}>How it works</div>
+          <p className="lp-section-eyebrow">How it works</p>
           <h2 className="lp-section-title">Three steps to effortless meals</h2>
           <p className="lp-section-sub">No spreadsheets. No decision fatigue. Just food you'll love.</p>
           <div className="lp-steps">
@@ -396,7 +442,7 @@ export default function LandingPage() {
 
       <section className="lp-section lp-section-alt" id="pricing">
         <div className="lp-section-inner">
-          <div className="lp-badge" style={{ margin: '0 auto 1rem' }}>Pricing</div>
+          <p className="lp-section-eyebrow">Pricing</p>
           <h2 className="lp-section-title">Simple, transparent pricing</h2>
           <p className="lp-section-sub">Start free. Upgrade when you need more power.</p>
 
@@ -469,7 +515,7 @@ export default function LandingPage() {
       {/* ─── REVIEWS SECTION ─── */}
       <section className="lp-section" id="reviews">
         <div className="lp-section-inner">
-          <div className="lp-badge" style={{ margin: '0 auto 1rem' }}>Community</div>
+          <p className="lp-section-eyebrow">Community</p>
           <h2 className="lp-section-title">What people are saying</h2>
           <p className="lp-section-sub">Read our latest reviews and share your experience.</p>
           
@@ -603,7 +649,7 @@ export default function LandingPage() {
       {/* ─── FAQ SECTION ─── */}
       <section className="lp-section lp-section-alt" id="faq">
         <div className="lp-section-inner" style={{ maxWidth: '700px' }}>
-          <div className="lp-badge" style={{ margin: '0 auto 1rem' }}>FAQ</div>
+          <p className="lp-section-eyebrow">FAQ</p>
           <h2 className="lp-section-title">Frequently Asked Questions</h2>
           <p className="lp-section-sub">Everything you need to know about PrepBite.</p>
           

@@ -69,6 +69,9 @@ export default function AuthCallbackPage() {
     }
 
     const email = session.user.email;
+    // Check if we came here from the "Upgrade to Pro" flow
+    const wantsCheckout = typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('checkout') === '1';
 
     // Await-safe wrapper because useEffect cannot be async
     (async () => {
@@ -91,6 +94,20 @@ export default function AuthCallbackPage() {
       }
 
       checkAndActivatePro(email);
+
+      // If user came via "Upgrade to Pro", send them directly to Dodo checkout
+      if (wantsCheckout) {
+        try {
+          const res = await fetch('/api/create-checkout-session', { method: 'POST' });
+          const data = await res.json();
+          if (data.checkout_url) {
+            window.location.href = data.checkout_url;
+            return;
+          }
+        } catch {
+          // Fall through to normal routing if checkout fails
+        }
+      }
 
       // Route based on registry
       const existingAccount = findAccount(email);

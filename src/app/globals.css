@@ -1756,6 +1756,19 @@ input[type="number"] {
   letter-spacing: 0.02em;
 }
 
+/* Plain section eyebrow label — no pill/background */
+.lp-section-eyebrow {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 auto 1rem;
+  text-align: center;
+}
+
 /* ─── Gradient Text ─── */
 .lp-gradient-text {
   background: linear-gradient(135deg, var(--accent), #00BCD4);
@@ -2162,7 +2175,7 @@ input[type="number"] {
   font-family: var(--font-heading);
   font-size: 1.2rem;
   font-weight: 600;
-  font-style: italic;
+  font-style: normal;
   color: var(--accent);
   margin-bottom: 1rem;
   opacity: 0.85;
