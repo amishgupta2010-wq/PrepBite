@@ -77,17 +77,12 @@ export default function LandingPage() {
   useEffect(() => {
     const userEmail = customSession?.email || oauthSession?.user?.email;
     if (userEmail) {
-      checkAndActivatePro(userEmail);
-      try {
-        const accounts = JSON.parse(localStorage.getItem('prepbite_registered_accounts') || '[]');
-        const acc = accounts.find((a: any) => a.email?.toLowerCase() === userEmail.toLowerCase());
-        if (acc?.tier === 'pro') {
-          setIsPro(true);
-          return;
-        }
-      } catch {}
+      const hasPro = checkAndActivatePro(userEmail);
+      setIsPro(hasPro);
+    } else {
+      setIsPro(false);
+      localStorage.removeItem('prepbite-is-pro');
     }
-    setIsPro(localStorage.getItem('prepbite-is-pro') === 'true');
   }, [oauthSession, customSession]);
 
   // Close dropdown on outside click
@@ -126,24 +121,35 @@ export default function LandingPage() {
         email: result.user!.email,
         gender: result.user!.gender,
       });
+      const userEmail = result.user!.email;
       // Check if this user is a Pro user
-      checkAndActivatePro(result.user!.email);
+      const accountHasPro = checkAndActivatePro(userEmail);
+      setIsPro(accountHasPro);
+
       if (pendingCheckout) {
         setPendingCheckout(false);
-        // Proceed to checkout now that user is signed in
-        setCheckoutLoading(true);
-        try {
-          const res = await fetch('/api/create-checkout-session', { method: 'POST' });
-          const data = await res.json();
-          if (data.checkout_url) {
-            window.location.href = data.checkout_url;
-          } else {
+        if (accountHasPro) {
+          // If the account ALREADY has Pro, just sign in (go to /app)
+          router.push('/app');
+        } else {
+          // If the account DOES NOT have Pro, take them to the Dodo buy menu!
+          setCheckoutLoading(true);
+          try {
+            const res = await fetch('/api/create-checkout-session', { method: 'POST' });
+            const data = await res.json();
+            if (data.checkout_url) {
+              window.location.href = data.checkout_url;
+              return;
+            } else {
+              alert('Unable to start checkout. Please try again.');
+              setCheckoutLoading(false);
+              router.push('/app');
+            }
+          } catch {
             alert('Unable to start checkout. Please try again.');
             setCheckoutLoading(false);
+            router.push('/app');
           }
-        } catch {
-          alert('Unable to start checkout. Please try again.');
-          setCheckoutLoading(false);
         }
       } else {
         router.push('/app');
@@ -219,6 +225,11 @@ export default function LandingPage() {
     if (!isLoggedIn) {
       setPendingCheckout(true);
       setShowSignIn(true);
+      return;
+    }
+    // If account already has Pro, go straight to dashboard
+    if (isPro) {
+      router.push('/app');
       return;
     }
     setCheckoutLoading(true);

@@ -9,6 +9,7 @@ import { getSession, logoutUser } from '../../lib/auth';
 import Tutorial from '../components/Tutorial';
 import UpgradeModal from '../components/UpgradeModal';
 import { isBetaTester } from '../../lib/betaTester';
+import { checkAndActivatePro } from '../../lib/proUsers';
 import { useTheme } from '../components/ThemeProvider';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -78,7 +79,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     setUserData(ob);
-    setIsPro(localStorage.getItem('prepbite-is-pro') === 'true' || isBetaTester());
+    const userHasPro = checkAndActivatePro(userEmail);
+    setIsPro(userHasPro);
 
     // Calculate Streaks
     try {
@@ -428,9 +430,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     const reviews = localStorage.getItem("prepbite_reviews");
                     const users = localStorage.getItem("prepbite-users");
 
-                    // 2. Remove active session tokens only
+                    // 2. Remove active session tokens and pro flag
                     localStorage.removeItem("prepbite-session");
                     localStorage.removeItem("prepbite-remember-me");
+                    localStorage.removeItem("prepbite-is-pro");
+                    localStorage.removeItem("prepbite-beta-tester");
                     sessionStorage.clear();
 
                     if (registered) localStorage.setItem("prepbite_registered_accounts", registered);

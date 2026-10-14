@@ -8,8 +8,26 @@ export default function SuccessPage() {
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
-    // Unlock Pro
+    // Unlock Pro in localStorage
     localStorage.setItem('prepbite-is-pro', 'true');
+
+    // Upgrade the current user account tier to 'pro'
+    try {
+      const sessionRaw = localStorage.getItem('prepbite-session');
+      const email = sessionRaw ? JSON.parse(sessionRaw)?.email : null;
+      if (email) {
+        const accountsRaw = localStorage.getItem('prepbite_registered_accounts');
+        if (accountsRaw) {
+          const accounts = JSON.parse(accountsRaw);
+          if (Array.isArray(accounts)) {
+            const updated = accounts.map((a: any) =>
+              a.email?.toLowerCase().trim() === email.toLowerCase().trim() ? { ...a, tier: 'pro' } : a
+            );
+            localStorage.setItem('prepbite_registered_accounts', JSON.stringify(updated));
+          }
+        }
+      }
+    } catch {}
 
     const timer = setInterval(() => {
       setCountdown(prev => {

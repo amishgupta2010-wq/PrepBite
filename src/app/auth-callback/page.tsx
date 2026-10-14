@@ -93,36 +93,49 @@ export default function AuthCallbackPage() {
         localStorage.setItem('prepbite-remember-me', 'true');
       }
 
-      checkAndActivatePro(email);
-
-      // If user came via "Upgrade to Pro", send them directly to Dodo checkout
-      if (wantsCheckout) {
-        try {
-          const res = await fetch('/api/create-checkout-session', { method: 'POST' });
-          const data = await res.json();
-          if (data.checkout_url) {
-            window.location.href = data.checkout_url;
-            return;
-          }
-        } catch {
-          // Fall through to normal routing if checkout fails
-        }
-      }
+      const accountHasPro = checkAndActivatePro(email);
 
       // Route based on registry
       const existingAccount = findAccount(email);
 
+      if (!existingAccount) {
+        const currentRegistry = getRegistry();
+        currentRegistry.push({ email, hasCompletedOnboarding: false, hasSeenTutorial: false, tier: accountHasPro ? 'pro' : 'free' });
+        saveRegistry(currentRegistry);
+      }
+
+      // If user came via "Upgrade to Pro"
+      if (wantsCheckout) {
+        if (accountHasPro) {
+          // Account ALREADY has Pro! Do not open checkout, just sign in
+          if (existingAccount && existingAccount.hasCompletedOnboarding) {
+            localStorage.setItem('prepbite-tutorial-done', 'true');
+            window.location.replace('/app');
+          } else {
+            window.location.replace('/onboarding');
+          }
+          return;
+        } else {
+          // Account DOES NOT have Pro! Take them to Dodo checkout
+          try {
+            const res = await fetch('/api/create-checkout-session', { method: 'POST' });
+            const data = await res.json();
+            if (data.checkout_url) {
+              window.location.href = data.checkout_url;
+              return;
+            }
+          } catch {
+            // Fall through to normal routing if checkout fails
+          }
+        }
+      }
+
+      // Normal sign-in redirect
       if (existingAccount && existingAccount.hasCompletedOnboarding) {
         // Existing user — suppress tutorial and go straight to dashboard
         localStorage.setItem('prepbite-tutorial-done', 'true');
         window.location.replace('/app');
       } else {
-        // New user — add to registry and send to onboarding
-        if (!existingAccount) {
-          const currentRegistry = getRegistry();
-          currentRegistry.push({ email, hasCompletedOnboarding: false, hasSeenTutorial: false, tier: 'free' });
-          saveRegistry(currentRegistry);
-        }
         window.location.replace('/onboarding');
       }
     })();

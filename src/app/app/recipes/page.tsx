@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import CookbookModal from '../../components/CookbookModal';
 import UpgradeModal from '../../components/UpgradeModal';
 import { isIngredientAvailable, deduplicateIngredients } from '../../lib/ingredientMatch';
-import { isBetaTester } from '../../../lib/betaTester';
+import { isProUser } from '../../../lib/proUsers';
 
 /** Cache key for storing generated meal plan data to avoid redundant API calls */
 const CACHE_KEY = 'prepbite-recipe-cache';
@@ -64,11 +64,6 @@ function incrementGenCount() {
   localStorage.setItem(GEN_MONTH_KEY, currentMonth);
   const current = getGenCount();
   localStorage.setItem(GEN_COUNT_KEY, (current + 1).toString());
-}
-
-function isProUser(): boolean {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem('prepbite-is-pro') === 'true' || isBetaTester();
 }
 
 export default function RecipesPage() {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import UpgradeModal from '../../components/UpgradeModal';
-import { isBetaTester } from '../../../lib/betaTester';
+import { isProUser } from '../../../lib/proUsers';
 
 interface Ingredient {
   id: string;
@@ -26,7 +26,7 @@ export default function IngredientsPage() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const isPro = typeof window !== 'undefined' && (localStorage.getItem('prepbite-is-pro') === 'true' || isBetaTester());
+  const isPro = isProUser();
   const FREE_LIMIT = 3;
   const getGenCount = (): number => {
     if (typeof window === 'undefined') return 0;
