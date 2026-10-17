@@ -6,9 +6,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 const COOKING_METHODS = {
-  breakfast: ['Scramble', 'Toast', 'Bowl', 'Smoothie', 'Pancakes', 'Wrap', 'Porridge'],
-  lunch: ['Salad', 'Wrap', 'Bowl', 'Sandwich', 'Stir-Fry', 'Soup', 'Pasta'],
-  dinner: ['Stir-Fry', 'Roast', 'Curry', 'Pasta', 'Bowl', 'Casserole', 'Skillet'],
+  dinner: ['Stir-Fry', 'Roast', 'Curry', 'Pasta', 'Bowl', 'Casserole', 'Skillet', 'Soup', 'Salad', 'Wrap'],
 };
 
 const METHOD_IMAGES: Record<string, string> = {
@@ -61,8 +59,8 @@ function filterIngredientsByDiet(ings: string[], diet: string, exclude: string):
   return filtered;
 }
 
-function generateRecipe(ings: string[], mealType: 'breakfast' | 'lunch' | 'dinner', methodIdx: number, calTarget: number) {
-  const methods = COOKING_METHODS[mealType];
+function generateRecipe(ings: string[], methodIdx: number, calTarget: number) {
+  const methods = COOKING_METHODS.dinner;
   const method = methods[methodIdx % methods.length];
   const picked = ings.slice(0, Math.min(3, ings.length));
   const title = picked.length > 1 ? `${picked[0]} & ${picked[1]} ${method}` : `${picked[0]} ${method}`;
@@ -86,6 +84,32 @@ function generateRecipe(ings: string[], mealType: 'breakfast' | 'lunch' | 'dinne
   };
 }
 
+/**
+ * Given N cooking days, compute which days of the week (Mon=0..Sun=6)
+ * are cooking days, and the "Eat on ..." label for each.
+ */
+const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const ALL_DAYS_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+function computeCookingSchedule(n: number): { dayName: string; eatOn: string }[] {
+  // Spread n cooking days evenly across Mon(0)..Sun(6)
+  // Assign each day-of-week to one of n slots using round-robin
+  const slots: number[][] = Array.from({ length: n }, () => []);
+  for (let d = 0; d < 7; d++) {
+    slots[d % n].push(d);
+  }
+
+  return slots.map((daysInSlot) => {
+    const cookDay = daysInSlot[0]; // first day in slot = cooking day
+    const eatDays = daysInSlot;
+    const eatLabel =
+      eatDays.length === 1
+        ? `Eat on ${ALL_DAYS[eatDays[0]]}`
+        : `Eat on ${ALL_DAYS[eatDays[0]]}–${ALL_DAYS[eatDays[eatDays.length - 1]]}`;
+    return { dayName: ALL_DAYS_FULL[cookDay], eatOn: eatLabel };
+  });
+}
+
 export async function GET(req: NextRequest) {
   try {
   const { searchParams } = new URL(req.url);
@@ -93,6 +117,7 @@ export async function GET(req: NextRequest) {
   const diet = searchParams.get('diet') || '';
   const exclude = searchParams.get('exclude') || '';
   const ingredientsStr = searchParams.get('ingredients') || '';
+  const cookDays = Math.min(7, Math.max(2, parseInt(searchParams.get('cookDays') || '7', 10)));
   const apiKey = process.env.SPOONACULAR_API_KEY;
 
   const defaultIngs = diet === 'vegan'
@@ -106,12 +131,13 @@ export async function GET(req: NextRequest) {
   if (userIngs.length === 0) userIngs = filterIngredientsByDiet(defaultIngs, diet, exclude);
   if (userIngs.length === 0) userIngs = ['Rice', 'Potato', 'Tomato', 'Spinach', 'Bean'];
 
+  const schedule = computeCookingSchedule(cookDays);
+
   // Try Spoonacular first
-  let apiSuccess = false;
   if (apiKey && ingredientsStr.trim()) {
     try {
       const parsed = await parseIngredientsWithGroq(userIngs);
-      const findUrl = `https://api.spoonacular.com/recipes/findByIngredients?apiKey=${apiKey}&ingredients=${encodeURIComponent(parsed.searchString)}&number=42&ranking=1&ignorePantry=false`;
+      const findUrl = `https://api.spoonacular.com/recipes/findByIngredients?apiKey=${apiKey}&ingredients=${encodeURIComponent(parsed.searchString)}&number=${cookDays * 3}&ranking=1&ignorePantry=false`;
       const findRes = await fetch(findUrl);
       if (findRes.ok) {
         const found = await findRes.json();
@@ -124,46 +150,37 @@ export async function GET(req: NextRequest) {
             else if (diet === 'vegan') recipes = recipes.filter((r: any) => r.vegan);
             if (exclude === 'dairy') recipes = recipes.filter((r: any) => r.dairyFree);
 
-            if (recipes.length >= 3) {
-              while (recipes.length < 42) recipes.push(...recipes.slice(0, 42 - recipes.length));
-              const mainRecipes = recipes.slice(0, 21);
-              const extraRecipes = recipes.slice(21, 42);
-              const BASE_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-              const todayIdx = new Date().getDay();
-              const dayNames = Array.from({length: 7}, (_, i) => BASE_DAYS[(todayIdx + i) % 7]);
-              const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
-              const calPerMeal = Math.round(targetCalories / 3);
+            if (recipes.length >= cookDays) {
+              // Pad if needed
+              while (recipes.length < cookDays * 2) recipes.push(...recipes.slice(0, cookDays * 2 - recipes.length));
+              const calPerDay = Math.round(targetCalories * 0.6); // single main meal
 
-              const days = dayNames.map((day, di) => {
-                const meals = mealTypes.map((type, mi) => {
-                  const r = mainRecipes[di * 3 + mi];
-                  const cal = r.nutrition?.nutrients?.find((n: any) => n.name === 'Calories');
-                  return {
-                    type, id: r.id, title: r.title, image: r.image,
-                    readyInMinutes: r.readyInMinutes || 15,
-                    calories: cal?.amount || calPerMeal,
-                    ingredients: r.extendedIngredients?.map((ing: any) => ({ name: ing.name, amount: Math.round(ing.amount * 10) / 10, unit: ing.unit })) || [],
-                    steps: r.analyzedInstructions?.[0]?.steps?.map((s: any) => ({ number: s.number, step: s.step })) || [],
-                  };
-                });
-                return { day, meals, nutrients: { calories: meals.reduce((s, m) => s + m.calories, 0) } };
+              const days = schedule.map(({ dayName, eatOn }, di) => {
+                const r = recipes[di];
+                const cal = r.nutrition?.nutrients?.find((nn: any) => nn.name === 'Calories');
+                const meal = {
+                  type: 'Dinner',
+                  id: r.id, title: r.title, image: r.image,
+                  readyInMinutes: r.readyInMinutes || 20,
+                  calories: cal?.amount || calPerDay,
+                  ingredients: r.extendedIngredients?.map((ing: any) => ({ name: ing.name, amount: Math.round(ing.amount * 10) / 10, unit: ing.unit })) || [],
+                  steps: r.analyzedInstructions?.[0]?.steps?.map((s: any) => ({ number: s.number, step: s.step })) || [],
+                };
+                return { day: dayName, eatOn, meals: [meal], nutrients: { calories: meal.calories } };
               });
 
-              // Generate extras for refresh
-              const extras: Record<string, any[]> = { breakfast: [], lunch: [], dinner: [] };
-              extraRecipes.forEach((r: any, i: number) => {
-                const type = mealTypes[i % 3];
-                const key = type.toLowerCase();
-                const cal = r.nutrition?.nutrients?.find((n: any) => n.name === 'Calories');
-                extras[key].push({
-                  type, id: r.id, title: r.title, image: r.image,
-                  readyInMinutes: r.readyInMinutes || 15,
-                  calories: cal?.amount || calPerMeal,
+              // extras pool for swap
+              const extras: Record<string, any[]> = { dinner: [] };
+              recipes.slice(cookDays).forEach((r: any) => {
+                const cal = r.nutrition?.nutrients?.find((nn: any) => nn.name === 'Calories');
+                extras.dinner.push({
+                  type: 'Dinner', id: r.id, title: r.title, image: r.image,
+                  readyInMinutes: r.readyInMinutes || 20,
+                  calories: cal?.amount || calPerDay,
                   ingredients: r.extendedIngredients?.map((ing: any) => ({ name: ing.name, amount: Math.round(ing.amount * 10) / 10, unit: ing.unit })) || [],
                   steps: r.analyzedInstructions?.[0]?.steps?.map((s: any) => ({ number: s.number, step: s.step })) || [],
                 });
               });
-              
               return NextResponse.json({ days, extras });
             }
           }
@@ -172,35 +189,27 @@ export async function GET(req: NextRequest) {
     } catch (e) { console.warn('Spoonacular fallback:', e); }
   }
 
-  // ---- Generate recipes from user ingredients ----
+  // ---- Fallback: generate from user ingredients ----
   const shuffled = [...userIngs].sort(() => Math.random() - 0.5);
-  const calPerMeal = Math.round(targetCalories / 3);
-  const BASE_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const todayIdx = new Date().getDay();
-  const dayNames = Array.from({length: 7}, (_, i) => BASE_DAYS[(todayIdx + i) % 7]);
-  const mealTypes: ('breakfast' | 'lunch' | 'dinner')[] = ['breakfast', 'lunch', 'dinner'];
+  const calPerDay = Math.round(targetCalories * 0.6);
 
-  const days = dayNames.map((day, di) => {
-    const meals = mealTypes.map((type, mi) => {
-      const start = (di * 5 + mi * 3) % shuffled.length;
-      const mealIngs: string[] = [];
-      for (let k = 0; k < 3; k++) mealIngs.push(shuffled[(start + k) % shuffled.length]);
-      const r = generateRecipe(mealIngs, type, di + mi, calPerMeal);
-      return { type: type.charAt(0).toUpperCase() + type.slice(1), ...r };
-    });
-    return { day, meals, nutrients: { calories: meals.reduce((s, m) => s + m.calories, 0) } };
+  const days = schedule.map(({ dayName, eatOn }, di) => {
+    const start = (di * 5) % shuffled.length;
+    const mealIngs: string[] = [];
+    for (let k = 0; k < 3; k++) mealIngs.push(shuffled[(start + k) % shuffled.length]);
+    const r = generateRecipe(mealIngs, di, calPerDay);
+    const meal = { type: 'Dinner', ...r };
+    return { day: dayName, eatOn, meals: [meal], nutrients: { calories: meal.calories } };
   });
 
-  // Generate extras per category for refresh
-  const extras: Record<string, any[]> = { breakfast: [], lunch: [], dinner: [] };
-  mealTypes.forEach(type => {
-    for (let i = 0; i < 7; i++) {
-      const start = (21 + i * 4) % shuffled.length;
-      const mealIngs: string[] = [];
-      for (let k = 0; k < 3; k++) mealIngs.push(shuffled[(start + k) % shuffled.length]);
-      extras[type].push({ type: type.charAt(0).toUpperCase() + type.slice(1), ...generateRecipe(mealIngs, type, 10 + i, calPerMeal) });
-    }
-  });
+  // extras pool
+  const extras: Record<string, any[]> = { dinner: [] };
+  for (let i = 0; i < 7; i++) {
+    const start = (cookDays * 5 + i * 4) % shuffled.length;
+    const mealIngs: string[] = [];
+    for (let k = 0; k < 3; k++) mealIngs.push(shuffled[(start + k) % shuffled.length]);
+    extras.dinner.push({ type: 'Dinner', ...generateRecipe(mealIngs, 10 + i, calPerDay) });
+  }
 
   return NextResponse.json({ days, extras });
 

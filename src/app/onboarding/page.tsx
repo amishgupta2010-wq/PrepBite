@@ -29,6 +29,7 @@ interface OnboardingData {
   timelinePreset: string | null;
   customTimeValue: string;
   customTimeUnit: TimeUnit;
+  cookDays: number | null;
   referralSource: string | null;
   customReferral: string;
 }
@@ -72,7 +73,7 @@ function convertWeight(value: number, from: WeightUnit, to: WeightUnit): number 
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const totalSteps = 7; // Language, Username, Gender, Body, Exercise, Timeline, Referral
+  const totalSteps = 8; // Language, Username, Gender, Body, Exercise, Timeline, CookDays, Referral
 
   const [data, setData] = useState<OnboardingData>({
     language: 'en',
@@ -90,6 +91,7 @@ export default function OnboardingPage() {
     timelinePreset: null,
     customTimeValue: '',
     customTimeUnit: 'Months',
+    cookDays: null,
     referralSource: null,
     customReferral: '',
   });
@@ -200,7 +202,8 @@ export default function OnboardingPage() {
           if (!data.customTimeValue || parseFloat(data.customTimeValue) <= 0) return false;
         }
         return timelineValidation.valid;
-      case 7: return data.referralSource !== null; // Referral
+      case 7: return data.cookDays !== null; // Cook days per week
+      case 8: return data.referralSource !== null; // Referral
       default: return false;
     }
   }, [step, data, timelineValidation]);
@@ -488,8 +491,24 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 7: Referral */}
+        {/* Step 7: Cook Days */}
         {step === 7 && (
+          <div className="animate-slide-up">
+            <h2 className="step-question">How many days do you wanna cook per week?</h2>
+            <p className="text-body" style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>We'll space your meals evenly across the week.</p>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {[2, 3, 4, 5, 6, 7].map((day) => (
+                <button key={day} className={`day-card ${data.cookDays === day ? 'selected' : ''}`} onClick={() => setData({ ...data, cookDays: day })}>
+                  {day}
+                </button>
+              ))}
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', marginTop: '1.5rem' }}>days / week</p>
+          </div>
+        )}
+
+        {/* Step 8: Referral */}
+        {step === 8 && (
           <div className="animate-slide-up">
             <h2 className="step-question">{t.how_hear}</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>

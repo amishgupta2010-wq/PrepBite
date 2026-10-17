@@ -98,6 +98,7 @@ export default function RecipesPage() {
       const heightCm = onboarding.heightUnit === 'ft' ? onboarding.currentHeight * 2.54 : (onboarding.currentHeight || 170);
       const bmr = 10 * weightKg + 6.25 * heightCm - 120;
       const tdee = Math.round(bmr * (1.2 + ((onboarding.exerciseDays || 0) * 0.05))) || 2000;
+      const cookDays = onboarding.cookDays || 7;
 
       let diet = '';
       if (filters.vegan) diet = 'vegan';
@@ -115,7 +116,7 @@ export default function RecipesPage() {
         return;
       }
 
-      let url = `/api/recipes?targetCalories=${tdee}&ingredients=${encodeURIComponent(ingNames)}`;
+      let url = `/api/recipes?targetCalories=${tdee}&ingredients=${encodeURIComponent(ingNames)}&cookDays=${cookDays}`;
       if (diet) url += `&diet=${diet}`;
       if (exclude) url += `&exclude=${exclude}`;
 
@@ -175,38 +176,29 @@ export default function RecipesPage() {
 
   const handleRefreshConfirm = () => {
     if (!refreshTarget) return;
-    const { day: dayIdx, meal: mealIdx } = refreshTarget;
-    const mealType = ['breakfast', 'lunch', 'dinner'][mealIdx];
-    const pool = extras[mealType] || [];
+    const { day: dayIdx } = refreshTarget;
+    // Single meal per day — always index 0, pool is 'dinner'
+    const pool = extras['dinner'] || [];
     
     if (pool.length > 0) {
       const currentDayMeals = days[dayIdx].meals;
-      const oldRecipe = currentDayMeals[mealIdx];
+      const oldRecipe = currentDayMeals[0];
       
-      // Find a recipe in the pool that isn't the old recipe AND isn't already used in this day
-      const currentTitles = currentDayMeals.map((m: any) => m.title);
-      let newRecipeIdx = pool.findIndex((r: any) => r.title !== oldRecipe.title && !currentTitles.includes(r.title));
-      
-      // Fallback: if all pool recipes are in today's meals, at least pick one that isn't the old recipe
-      if (newRecipeIdx === -1) {
-        newRecipeIdx = pool.findIndex((r: any) => r.title !== oldRecipe.title);
-      }
-      // Ultimate fallback: just pick the first one if somehow they are all the exact same as the old recipe
+      let newRecipeIdx = pool.findIndex((r: any) => r.title !== oldRecipe.title);
       if (newRecipeIdx === -1) newRecipeIdx = 0;
 
       const newRecipe = pool[newRecipeIdx];
       const updatedDays = [...days];
       updatedDays[dayIdx] = {
         ...updatedDays[dayIdx],
-        meals: currentDayMeals.map((m: any, i: number) => i === mealIdx ? { ...newRecipe, type: m.type } : m),
+        meals: [{ ...newRecipe, type: 'Dinner' }],
       };
       setDays(updatedDays);
       
-      // Remove the used recipe from the pool and add the old recipe back to the end
       const newPool = [...pool];
       newPool.splice(newRecipeIdx, 1);
       newPool.push(oldRecipe);
-      setExtras(prev => ({ ...prev, [mealType]: newPool }));
+      setExtras(prev => ({ ...prev, dinner: newPool }));
     }
     setRefreshTarget(null);
   };
@@ -334,12 +326,10 @@ export default function RecipesPage() {
       {/* Day selector */}
       <div ref={scrollRef} style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', marginBottom: '2rem', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {days.map((day, i) => {
-          const date = new Date();
-          date.setDate(date.getDate() + i);
           return (
             <button key={day.day} className={`day-selector-btn ${selectedDay === i ? 'active' : ''}`} onClick={() => setSelectedDay(i)}>
               <span style={{ fontSize: '0.75rem', display: 'block', opacity: 0.8, marginBottom: '2px', textTransform: 'uppercase' }}>{day.day.slice(0, 3)}</span>
-              <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>{date.getDate()}</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{i + 1}</span>
             </button>
           );
         })}
@@ -348,12 +338,17 @@ export default function RecipesPage() {
       {/* Selected day meals */}
       {currentDay && (
         <div key={selectedDay}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
             <h2 className="heading-md">{currentDay.day}</h2>
             <span className="tag-chip" style={{ background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid var(--accent)' }}>
               {Math.round(currentDay.nutrients?.calories || 0)} kcal
             </span>
           </div>
+          {currentDay.eatOn && (
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.25rem', fontWeight: 500 }}>
+              📅 {currentDay.eatOn}
+            </p>
+          )}
 
           {currentDay.meals.map((meal: any, i: number) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
@@ -365,7 +360,6 @@ export default function RecipesPage() {
                     <div style={{ width: '72px', height: '72px', borderRadius: 'var(--radius)', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', flexShrink: 0 }}>🍲</div>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.25rem' }}>{meal.type}</div>
                     <div className="heading-sm" style={{ fontSize: '0.95rem', marginBottom: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meal.title}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>⏱ {meal.readyInMinutes || '?'}m · 🔥 {Math.round(meal.calories || 0)} kcal</div>
                   </div>

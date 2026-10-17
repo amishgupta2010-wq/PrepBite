@@ -360,7 +360,7 @@ export default function LandingPage() {
         <div className="lp-hero-content">
           <p className="lp-section-eyebrow">{"For anyone tired of asking \"what's for dinner?\""}</p>
           <h1 className="lp-hero-title">
-            Generating a 7-day meal plan in less than{' '}
+            Generating meal plan in less than{' '}
             <span style={{ color: '#10b981' }}>60 seconds</span>
           </h1>
           <p className="lp-motto" style={{ fontStyle: 'normal' }}>Less prep, better bites.</p>

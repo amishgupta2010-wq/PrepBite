@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { markTutorialSeen } from '../auth-callback/page';
 
@@ -16,10 +16,26 @@ export default function Tutorial() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0, targetX: 0, isTopTarget: false });
   const [winH, setWinH] = useState(0);
+  /** Controls visibility without unmounting — avoids the black-flash reflow */
+  const [visible, setVisible] = useState(false);
+  const [fading, setFading] = useState(false);
+  const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { data: session, update } = useSession();
+
+  /** Smoothly hides the tutorial without unmounting the component tree */
+  const dismissTutorial = useCallback(() => {
+    setFading(true);
+    if (fadeTimer.current) clearTimeout(fadeTimer.current);
+    fadeTimer.current = setTimeout(() => {
+      setStep(null);
+      setVisible(false);
+      setFading(false);
+    }, 220);
+  }, []);
 
   const startTutorial = useCallback(() => {
     setStep(0);
+    setVisible(true);
   }, []);
 
   useEffect(() => {
@@ -43,7 +59,11 @@ export default function Tutorial() {
 
     if (!isLocalDone && !isSessionDone && !hasSeenTutorial) {
       const timer = setTimeout(() => startTutorial(), 500);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('resize', onResize);
+        window.removeEventListener('prepbite-trigger-tutorial', onTrigger);
+      };
     }
 
     return () => {
@@ -89,7 +109,6 @@ export default function Tutorial() {
     if (step === null) return;
     if (step < STEPS.length - 1) {
       setTransitioning(true);
-      // Hide box, then change step, then show after repositioning
       setTimeout(() => {
         setStep(step + 1);
         setTimeout(() => setTransitioning(false), 80);
@@ -100,7 +119,7 @@ export default function Tutorial() {
         update({ hasSeenTutorial: true });
         if (session.user.email) markTutorialSeen(session.user.email);
       }
-      setStep(null);
+      dismissTutorial();
     }
   };
 
@@ -113,15 +132,23 @@ export default function Tutorial() {
         update({ hasSeenTutorial: true });
         if (session.user.email) markTutorialSeen(session.user.email);
       }
-      setStep(null);
+      dismissTutorial();
     }
   };
 
-  if (step === null || !winH || pos.y === 0) return null;
+  // Never fully unmount — use opacity/pointer-events to hide
+  if (!visible || step === null || !winH || pos.y === 0) {
+    return null;
+  }
+
+  const overlayOpacity = fading ? 0 : 1;
 
   return (
     <>
-      <div className="tutorial-overlay" />
+      <div
+        className="tutorial-overlay"
+        style={{ opacity: overlayOpacity, transition: 'opacity 0.2s ease' }}
+      />
 
       {/* Tooltip Positioned based on top/bottom target */}
       <div
@@ -132,8 +159,9 @@ export default function Tutorial() {
           bottom: pos.isTopTarget ? undefined : `${winH - pos.y + 8}px`,
           flexDirection: 'column',
           alignItems: 'center',
-          opacity: transitioning ? 0 : 1,
-          transition: 'opacity 0.1s ease',
+          opacity: fading ? 0 : (transitioning ? 0 : 1),
+          transition: 'opacity 0.2s ease',
+          pointerEvents: fading ? 'none' : 'auto',
         }}
       >
         <div className={`tutorial-arrow ${pos.isTopTarget ? 'arrow-up' : 'arrow-down'}`} style={{ 

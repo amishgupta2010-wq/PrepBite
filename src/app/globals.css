@@ -1332,6 +1332,7 @@ input[type="number"] {
   position: relative;
   width: 100%;
   max-width: 440px;
+  max-height: calc(100dvh - 2rem);
   background: #FDF6E3; /* Inner paper color */
   border: 14px solid #4A3320; /* Brown book cover */
   border-left: 28px solid #2F1E12; /* Darker spine */
@@ -1344,6 +1345,9 @@ input[type="number"] {
     10px 10px 0 rgba(74, 51, 32, 0.4);
   color: #2C2825;
   font-family: Georgia, serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .cookbook-modal::after {
   content: '';
@@ -1386,11 +1390,16 @@ input[type="number"] {
   padding-bottom: 0.75rem;
 }
 .cookbook-page {
-  min-height: 220px;
+  min-height: 120px;
+  flex: 1;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   transition: transform 0.2s ease, opacity 0.2s ease;
+  /* Subtle scrollbar for the book aesthetic */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(74,51,32,0.3) transparent;
 }
 .cookbook-page.flip-left {
   transform: translateX(-20px);
@@ -1435,8 +1444,9 @@ input[type="number"] {
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
-  margin-top: 1rem;
-  height: 60px;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  padding-bottom: 0.5rem;
 }
 .cookbook-nav {
   display: flex;
