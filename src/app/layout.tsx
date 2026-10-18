@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   title: "PrepBite — Less prep, better bites",
   description: "Weekly meal planning & smart grocery lists on autopilot. Stop stressing over daily dinner decisions.",
   icons: {
-    icon: '/prepbite-logo.png',
-    apple: '/prepbite-logo.png',
+    icon: '/favicon.ico',
+    apple: '/apple-icon.png',
   },
   openGraph: {
     title: 'PrepBite — Less prep, better bites',

@@ -272,20 +272,39 @@ export default function LandingPage() {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('revealed');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    const elements = document.querySelectorAll('.reveal-init');
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [showReviewsDropdown]);
+
   return (
     <div className="lp">
       <SettingsModal />
       {/* ─── NAVBAR ─── */}
       <nav className="lp-nav">
         <div className="lp-nav-inner">
-          <div className="lp-nav-brand">
-            <img src="/prepbite-logo.png" alt="PrepBite" className="lp-nav-logo" />
-            <span className="lp-nav-name">PrepBite</span>
+          <div className="lp-nav-brand" style={{ cursor: 'pointer' }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <img src="/prepbite-logo.png" alt="PrepBite" className="lp-nav-logo" style={{ height: '36px', width: 'auto', borderRadius: '6px' }} />
           </div>
           <div className="lp-nav-links">
             <button className="lp-nav-link" onClick={() => scrollTo('features')}>Features</button>
             <button className="lp-nav-link" onClick={() => scrollTo('pricing')}>Pricing</button>
             <button className="lp-nav-link" onClick={() => scrollTo('reviews')}>Reviews</button>
+            <button className="lp-nav-link" onClick={() => scrollTo('about')}>About Us</button>
             <button className="lp-nav-link" onClick={() => scrollTo('faq')}>FAQ</button>
             {isLoggedIn ? (
               <button className="lp-user-pill" onClick={() => router.push('/app')}>
@@ -358,17 +377,17 @@ export default function LandingPage() {
         <div className="lp-hero-glow" />
         <div className="lp-hero-grid" />
         <div className="lp-hero-content">
-          <p className="lp-section-eyebrow">{"For anyone tired of asking \"what's for dinner?\""}</p>
-          <h1 className="lp-hero-title">
+          <p className="lp-section-eyebrow reveal-init">{"For anyone tired of asking \"what's for dinner?\""}</p>
+          <h1 className="lp-hero-title reveal-init reveal-heading">
             Generating meal plan in less than{' '}
             <span style={{ color: '#10b981' }}>60 seconds</span>
           </h1>
-          <p className="lp-motto" style={{ fontStyle: 'normal' }}>Less prep, better bites.</p>
-          <p className="lp-hero-sub">
+          <p className="lp-motto reveal-init" style={{ fontStyle: 'normal' }}>Less prep, better bites.</p>
+          <p className="lp-hero-sub reveal-init">
             Stop stressing over daily dinner decisions. Pick your preferences, generate
             customized 7-day plans, swap recipes instantly, and auto-sync missing ingredients.
           </p>
-          <div className="lp-hero-actions">
+          <div className="lp-hero-actions reveal-init">
             {isLoggedIn ? (
               <button className="lp-btn-cta lp-btn-dashboard" onClick={() => router.push('/app')}>
                 Go to Dashboard →
@@ -385,7 +404,7 @@ export default function LandingPage() {
         </div>
 
         {/* Hero mockup card */}
-        <div className="lp-hero-mockup">
+        <div className="lp-hero-mockup reveal-init reveal-stagger-2">
           <div className="lp-mockup-card">
             <div className="lp-mockup-header">
               <span className="lp-mockup-dot" style={{ background: '#FF5F56' }} />
@@ -431,16 +450,16 @@ export default function LandingPage() {
       {/* ─── 3-STEP WORKFLOW ─── */}
       <section className="lp-section" id="features">
         <div className="lp-section-inner">
-          <p className="lp-section-eyebrow">How it works</p>
-          <h2 className="lp-section-title">Three steps to effortless meals</h2>
-          <p className="lp-section-sub">No spreadsheets. No decision fatigue. Just food you'll love.</p>
+          <p className="lp-section-eyebrow reveal-init">How it works</p>
+          <h2 className="lp-section-title reveal-init reveal-heading">Three steps to effortless meals</h2>
+          <p className="lp-section-sub reveal-init">No spreadsheets. No decision fatigue. Just food you'll love.</p>
           <div className="lp-steps">
             {[
               { num: '01', icon: '🎯', title: 'Set Dietary Goals', desc: 'Enter your calorie target, dietary preferences, and restrictions. We handle the math.' },
               { num: '02', icon: '⚡', title: 'Generate & Swap', desc: 'Get a complete 7-day meal plan instantly. Don\'t like a recipe? Swap it with one click.' },
               { num: '03', icon: '🛒', title: 'Smart Grocery Sync', desc: 'Missing ingredients auto-populate your shopping list. Never forget an item again.' },
             ].map((step, i) => (
-              <div key={i} className="lp-step-card">
+              <div key={i} className={`lp-step-card reveal-init reveal-stagger-${i + 1}`}>
                 <div className="lp-step-num">{step.num}</div>
                 <div className="lp-step-icon">{step.icon}</div>
                 <h3 className="lp-step-title">{step.title}</h3>
@@ -453,14 +472,14 @@ export default function LandingPage() {
 
       <section className="lp-section lp-section-alt" id="pricing">
         <div className="lp-section-inner">
-          <p className="lp-section-eyebrow">Pricing</p>
-          <h2 className="lp-section-title">Simple, transparent pricing</h2>
-          <p className="lp-section-sub">Start free. Upgrade when you need more power.</p>
+          <p className="lp-section-eyebrow reveal-init">Pricing</p>
+          <h2 className="lp-section-title reveal-init reveal-heading">Simple, transparent pricing</h2>
+          <p className="lp-section-sub reveal-init">Start free. Upgrade when you need more power.</p>
 
           {isLoggedIn && isPro ? (
             /* Pro user: show benefits + thank-you */
             <div style={{ maxWidth: '520px', margin: '0 auto', textAlign: 'center' }}>
-              <div className="lp-price-card lp-price-pro" style={{ marginBottom: '1.5rem' }}>
+              <div className="lp-price-card lp-price-pro reveal-init" style={{ marginBottom: '1.5rem' }}>
                 <div className="lp-price-badge">👑 YOUR PLAN</div>
                 <h3 className="lp-price-name lp-gradient-text">Pro</h3>
                 <ul className="lp-price-features" style={{ textAlign: 'left' }}>
@@ -473,7 +492,7 @@ export default function LandingPage() {
                   Go to Dashboard →
                 </button>
               </div>
-              <p style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--accent)', marginTop: '1rem' }}>
+              <p className="reveal-init" style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--accent)', marginTop: '1rem' }}>
                 Thank you for choosing the Pro version!
               </p>
             </div>
@@ -481,7 +500,7 @@ export default function LandingPage() {
             /* Free user / Not logged in: show normal pricing grid */
             <div className="lp-pricing-grid">
               {/* Free tier */}
-              <div className="lp-price-card">
+              <div className="lp-price-card reveal-init reveal-stagger-1">
                 <h3 className="lp-price-name">Free</h3>
                 <div className="lp-price-amount">
                   <span className="lp-price-dollar">$0</span>
@@ -503,7 +522,7 @@ export default function LandingPage() {
                 )}
               </div>
               {/* Pro tier */}
-              <div className="lp-price-card lp-price-pro">
+              <div className="lp-price-card lp-price-pro reveal-init reveal-stagger-2">
                 <div className="lp-price-badge">👑 BEST VALUE</div>
                 <h3 className="lp-price-name lp-gradient-text">Pro</h3>
                 <div className="lp-price-amount">
@@ -526,11 +545,11 @@ export default function LandingPage() {
       {/* ─── REVIEWS SECTION ─── */}
       <section className="lp-section" id="reviews">
         <div className="lp-section-inner">
-          <p className="lp-section-eyebrow">Community</p>
-          <h2 className="lp-section-title">What people are saying</h2>
-          <p className="lp-section-sub">Read our latest reviews and share your experience.</p>
+          <p className="lp-section-eyebrow reveal-init">Community</p>
+          <h2 className="lp-section-title reveal-init reveal-heading">What people are saying</h2>
+          <p className="lp-section-sub reveal-init">Read our latest reviews and share your experience.</p>
           
-          <div className="review-stats">
+          <div className="review-stats reveal-init">
             {[5, 4, 3, 2, 1].map(stars => {
               const count = localReviews.filter(r => r.stars === stars).length;
               const percent = localReviews.length > 0 ? (count / localReviews.length) * 100 : 0;
@@ -548,7 +567,7 @@ export default function LandingPage() {
 
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <button 
-              className="lp-btn-outline" 
+              className="lp-btn-outline reveal-init" 
               onClick={() => setShowReviewsDropdown(!showReviewsDropdown)}
               style={{ padding: '0.75rem 1.5rem', display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}
             >
@@ -570,7 +589,7 @@ export default function LandingPage() {
                   {localReviews.map((rev, i) => {
                     const isOwn = isLoggedIn && rev.owner === displayName;
                     return (
-                    <div key={rev.id || i} className="review-card" style={{ position: 'relative' }}>
+                    <div key={rev.id || i} className={`review-card reveal-init reveal-stagger-${(i % 3) + 1}`} style={{ position: 'relative' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <div>
                           <strong style={{ color: 'var(--accent)', marginRight: '0.5rem' }}>{rev.name}</strong>
@@ -610,7 +629,7 @@ export default function LandingPage() {
             </div>
           )}
 
-          <div className="contact-box" style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <div className="contact-box reveal-init" style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Leave a review?</h3>
             {!isLoggedIn ? (
               <div style={{ textAlign: 'center', padding: '1.5rem' }}>
@@ -657,16 +676,132 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ─── ABOUT US SECTION ─── */}
+      <section className="lp-section" id="about">
+        <div className="lp-section-inner" style={{ maxWidth: '800px' }}>
+          <p className="lp-section-eyebrow reveal-init">About Us</p>
+          <h2 className="lp-section-title reveal-init reveal-heading" style={{ fontWeight: 800 }}>About PrepBite</h2>
+          <p className="reveal-init" style={{ color: '#10b981', fontWeight: 700, fontSize: '1.25rem', marginTop: '0.5rem', marginBottom: '1.5rem' }}>
+            Less prep, better bites.
+          </p>
+          <div className="glass-card reveal-init" style={{ padding: '2.5rem', textAlign: 'left', lineHeight: 1.75, borderRadius: 'var(--radius-lg)' }}>
+            <p style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
+              Meal planning shouldn’t feel like a second job.
+            </p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+              PrepBite was built to eliminate mealtime decision fatigue. We help busy students, professionals, and lifters hit their nutrition goals without spending hours buried in clunky spreadsheets or overcomplicated trackers.
+            </p>
+
+            <div style={{ height: '1px', background: 'var(--border)', margin: '2rem 0' }} />
+
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1rem' }}>
+              Why PrepBite Exists
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              Most nutrition apps demand endless manual logging, barcode scanning, and rigid 7-day recipes that fall apart the minute your schedule gets hectic. Sticking to your diet isn&apos;t a willpower problem—it&apos;s a friction problem. When planning what to eat takes longer than cooking it, consistency dies.
+            </p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+              PrepBite strips out the noise. You get practical batch-prep frameworks, automated grocery lists, and clean interfaces designed to adapt to a real routine—not hijack it.
+            </p>
+
+            <div style={{ height: '1px', background: 'var(--border)', margin: '2rem 0' }} />
+
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1.25rem' }}>
+              Core Principles
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2rem' }}>
+              <div className="reveal-init reveal-stagger-1" style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '12px', borderLeft: '4px solid #10b981' }}>
+                <strong style={{ color: 'var(--text-primary)', fontSize: '1.05rem', display: 'block', marginBottom: '0.35rem' }}>
+                  ⚡ Frictionless Speed
+                </strong>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  Zero bloated workflows. Get a complete, realistic plan and a consolidated grocery run in under 60 seconds.
+                </span>
+              </div>
+              <div className="reveal-init reveal-stagger-2" style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '12px', borderLeft: '4px solid #10b981' }}>
+                <strong style={{ color: 'var(--text-primary)', fontSize: '1.05rem', display: 'block', marginBottom: '0.35rem' }}>
+                  🎯 Consistency Over Perfection
+                </strong>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  Rigid calorie obsession burns people out. We prioritize practical, repeatable meals that support recovery, energy, and focus without locking you in the kitchen every night.
+                </span>
+              </div>
+              <div className="reveal-init reveal-stagger-3" style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '12px', borderLeft: '4px solid #10b981' }}>
+                <strong style={{ color: 'var(--text-primary)', fontSize: '1.05rem', display: 'block', marginBottom: '0.35rem' }}>
+                  🌱 Built in Public, Shaped by You
+                </strong>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  No pop-ups, no spam. PrepBite is an independent project built directly around user feedback and real-world utility.
+                </span>
+              </div>
+            </div>
+
+            <div style={{ height: '1px', background: 'var(--border)', margin: '2rem 0' }} />
+
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1rem' }}>
+              Meet the Builder
+            </h3>
+            <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent)', marginBottom: '0.75rem' }}>
+              Hey, I’m Ag!
+            </p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              I’m an independent builder and designer balancing high school exams, training, and software development.
+            </p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              Juggling intense study blocks, workouts, and cooking made me realize how much mental fuel was wasted just staring into the fridge wondering what to cook. I didn&apos;t want another bloated database—I wanted an automated system that solved the &quot;what&apos;s for dinner?&quot; dilemma instantly. So I built PrepBite.
+            </p>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+              Every feature and iteration is shaped by the people using it. If you hit a bug, want a new integration, or have an idea, reach out directly.
+            </p>
+
+            <div style={{ height: '1px', background: 'var(--border)', margin: '2rem 0' }} />
+
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1rem' }}>
+              Connect &amp; Feedback
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '2.5rem' }}>
+              <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                <strong>Support &amp; Bug Reports:</strong>{' '}
+                <a href="mailto:PrepBite.support@gmail.com" style={{ color: '#10b981', textDecoration: 'underline' }}>
+                  PrepBite.support@gmail.com
+                </a>
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                <strong>Build-in-Public Updates:</strong>{' '}
+                <a href="https://x.com/RealAgHere" target="_blank" rel="noopener noreferrer" style={{ color: '#10b981', textDecoration: 'underline' }}>
+                  @RealAgHere on X
+                </a>
+              </p>
+            </div>
+
+            <div style={{ textAlign: 'center', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+              <p style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1.25rem', color: 'var(--text-primary)' }}>
+                Ready to take dinner off your mental to-do list?
+              </p>
+              {isLoggedIn ? (
+                <button className="lp-btn-cta lp-btn-dashboard" onClick={() => router.push('/app')}>
+                  Go to Dashboard →
+                </button>
+              ) : (
+                <button className="lp-btn-cta lp-btn-dashboard" onClick={() => setShowSignIn(true)}>
+                  Try PrepBite Free
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ─── FAQ SECTION ─── */}
       <section className="lp-section lp-section-alt" id="faq">
         <div className="lp-section-inner" style={{ maxWidth: '700px' }}>
-          <p className="lp-section-eyebrow">FAQ</p>
-          <h2 className="lp-section-title">Frequently Asked Questions</h2>
-          <p className="lp-section-sub">Everything you need to know about PrepBite.</p>
+          <p className="lp-section-eyebrow reveal-init">FAQ</p>
+          <h2 className="lp-section-title reveal-init reveal-heading">Frequently Asked Questions</h2>
+          <p className="lp-section-sub reveal-init">Everything you need to know about PrepBite.</p>
           
           <div style={{ margin: '3rem 0' }}>
             {FAQ_DATA.map((item, index) => (
-              <div key={index} className="faq-item">
+              <div key={index} className={`faq-item reveal-init reveal-stagger-${(index % 3) + 1}`}>
                 <button 
                   className="faq-question" 
                   onClick={() => setOpenFaqIndex(openFaqIndex === index ? null : index)}
@@ -685,7 +820,7 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <div className="contact-box">
+          <div className="contact-box reveal-init">
             <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Ask us a question</h3>
             {!isLoggedIn ? (
               <div style={{ textAlign: 'center', padding: '1.5rem' }}>
@@ -723,10 +858,9 @@ export default function LandingPage() {
 
       {/* ─── FOOTER ─── */}
       <footer className="lp-footer">
-        <div className="lp-footer-inner">
-          <div className="lp-footer-brand">
-            <img src="/prepbite-logo.png" alt="PrepBite" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
-            <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>PrepBite</span>
+        <div className="lp-footer-inner reveal-init">
+          <div className="lp-footer-brand" style={{ cursor: 'pointer' }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <img src="/prepbite-logo.png" alt="PrepBite" style={{ height: '30px', width: 'auto', borderRadius: '6px' }} />
           </div>
           <p className="lp-footer-copy">© {new Date().getFullYear()} PrepBite. Less prep, better bites.</p>
           {isLoggedIn ? (
@@ -739,7 +873,7 @@ export default function LandingPage() {
             </button>
           )}
         </div>
-        <div style={{ textAlign: 'center', marginTop: '1.25rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+        <div className="reveal-init" style={{ textAlign: 'center', marginTop: '1.25rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
           Contact <a href="mailto:PrepBite.support@gmail.com" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>PrepBite.support@gmail.com</a> for help
         </div>
       </footer>

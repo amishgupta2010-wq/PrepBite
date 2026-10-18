@@ -22,6 +22,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
   const isLightMode = theme === 'light';
   const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [showGeneralSettings, setShowGeneralSettings] = useState(false);
+  const [cookDays, setCookDays] = useState<number | null>(null);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userData, setUserData] = useState<any>(null);
@@ -79,6 +81,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     setUserData(ob);
+    setCookDays(ob?.cookDays ?? null);
     const userHasPro = checkAndActivatePro(userEmail);
     setIsPro(userHasPro);
 
@@ -137,6 +140,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setEditingField(null);
   };
 
+  const handleCookDaysChange = (days: number) => {
+    setCookDays(days);
+    try {
+      const ob = JSON.parse(localStorage.getItem('prepbite-onboarding') || '{}');
+      ob.cookDays = days;
+      localStorage.setItem('prepbite-onboarding', JSON.stringify(ob));
+      setUserData(ob);
+
+      const userEmail = customSession?.email || (session?.user as any)?.email;
+      if (userEmail) {
+        const accounts = JSON.parse(localStorage.getItem('prepbite_registered_accounts') || '[]');
+        const idx = accounts.findIndex((a: any) => a.email?.toLowerCase() === userEmail.toLowerCase());
+        if (idx !== -1) {
+          if (!accounts[idx].questionAnswers) accounts[idx].questionAnswers = {};
+          accounts[idx].questionAnswers.cookDays = days;
+          localStorage.setItem('prepbite_registered_accounts', JSON.stringify(accounts));
+        }
+      }
+      localStorage.removeItem('prepbite-recipe-cache');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <>
       {/* Top Header */}
@@ -165,9 +192,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           >
             ←
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, fontSize: '1.25rem', color: 'var(--accent)', letterSpacing: '-0.5px' }}>
-            <img src="/prepbite-logo.png" alt="PrepBite Logo" style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'contain', background: 'transparent' }} />
-            PrepBite
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/prepbite-logo.png" alt="PrepBite Logo" style={{ height: '32px', width: 'auto', borderRadius: '6px', objectFit: 'contain' }} />
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -265,10 +291,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Settings Modal */}
       {showSettings && (
-        <div className="tutorial-confirm-overlay" style={{ background: 'var(--bg-primary)' }} onClick={() => { setShowSettings(false); setShowAccountSettings(false); }}>
+        <div className="tutorial-confirm-overlay" style={{ background: 'var(--bg-primary)' }} onClick={() => { setShowSettings(false); setShowAccountSettings(false); setShowGeneralSettings(false); }}>
           <div className="animate-slide-up" onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '2rem', maxWidth: '360px', width: '90%', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
             
-            {!showAccountSettings ? (
+            {!showAccountSettings && !showGeneralSettings ? (
               <>
                 <h3 className="heading-md" style={{ marginBottom: '1.5rem', color: 'var(--accent)' }}>Settings</h3>
 
@@ -276,6 +302,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <span style={{ fontWeight: 600 }}>Theme Mode</span>
                   <button className="ingredient-tag selected" onClick={toggleTheme}>
                     {isLightMode ? '☀️ Light' : '🌙 Dark'}
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid var(--border)', marginBottom: '1rem' }}>
+                  <span style={{ fontWeight: 600 }}>General</span>
+                  <button className="ingredient-tag" onClick={() => setShowGeneralSettings(true)}>
+                    General ⚙️
                   </button>
                 </div>
 
@@ -340,6 +373,49 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <button className="btn btn-primary" onClick={() => setShowSettings(false)} style={{ width: '100%' }}>
+                  Done
+                </button>
+              </>
+            ) : showGeneralSettings ? (
+              <>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', minHeight: '32px' }}>
+                  <button onClick={() => setShowGeneralSettings(false)} style={{ position: 'absolute', left: 0, background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.25rem', cursor: 'pointer', padding: '0.25rem' }}>←</button>
+                  <h3 className="heading-md" style={{ color: 'var(--accent)', margin: 0 }}>General</h3>
+                </div>
+
+                <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+                  <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.75rem' }}>
+                    🍳 Cooking Days / Week
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    {[2, 3, 4, 5, 6, 7].map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => handleCookDaysChange(d)}
+                        style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: '10px',
+                          border: cookDays === d ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          background: cookDays === d ? 'var(--accent-dim)' : 'var(--bg-secondary)',
+                          color: cookDays === d ? 'var(--accent)' : 'var(--text-secondary)',
+                          fontFamily: 'var(--font-body)',
+                          fontSize: '1rem',
+                          fontWeight: cookDays === d ? 700 : 400,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.75rem', textAlign: 'center' }}>
+                    Changes apply the next time you generate a meal plan.
+                  </p>
+                </div>
+
+                <button className="btn btn-primary" onClick={() => setShowGeneralSettings(false)} style={{ width: '100%' }}>
                   Done
                 </button>
               </>

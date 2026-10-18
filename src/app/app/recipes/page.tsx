@@ -24,8 +24,8 @@ interface CacheEntry {
   fingerprint: string;
 }
 
-function buildFingerprint(calories: number, ingredients: string, diet: string, exclude: string): string {
-  return `${calories}|${ingredients}|${diet}|${exclude}`;
+function buildFingerprint(calories: number, ingredients: string, diet: string, exclude: string, cookDays: number, dateStr: string): string {
+  return `${calories}|${ingredients}|${diet}|${exclude}|${cookDays}|${dateStr}`;
 }
 
 function getCache(fingerprint: string): CacheEntry | null {
@@ -107,7 +107,8 @@ export default function RecipesPage() {
       const ingNames = ingredients.map((i: any) => i.name).join(',');
 
       // Check local cache first
-      const fingerprint = buildFingerprint(tdee, ingNames, diet, exclude);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const fingerprint = buildFingerprint(tdee, ingNames, diet, exclude, cookDays, todayStr);
       const cached = getCache(fingerprint);
       if (cached) {
         setDays(cached.data.days);
@@ -116,7 +117,8 @@ export default function RecipesPage() {
         return;
       }
 
-      let url = `/api/recipes?targetCalories=${tdee}&ingredients=${encodeURIComponent(ingNames)}&cookDays=${cookDays}`;
+      const startDateIso = new Date().toISOString();
+      let url = `/api/recipes?targetCalories=${tdee}&ingredients=${encodeURIComponent(ingNames)}&cookDays=${cookDays}&startDate=${encodeURIComponent(startDateIso)}`;
       if (diet) url += `&diet=${diet}`;
       if (exclude) url += `&exclude=${exclude}`;
 
