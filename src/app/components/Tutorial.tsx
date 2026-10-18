@@ -11,6 +11,21 @@ const STEPS = [
   { target: '.settings-btn', text: 'Here you can change preferences and choices to your liking!' },
 ];
 
+function getTargetPosition(stepIdx: number) {
+  if (typeof window === 'undefined') return null;
+  if (stepIdx < 0 || stepIdx >= STEPS.length) return null;
+  const el = document.querySelector(STEPS[stepIdx].target);
+  if (!el) return null;
+  const rect = el.getBoundingClientRect();
+  const isTop = rect.top < window.innerHeight / 2;
+  return {
+    x: Math.min(Math.max(rect.left + rect.width / 2, 160), window.innerWidth - 160),
+    y: isTop ? rect.bottom : rect.top,
+    targetX: rect.left + rect.width / 2,
+    isTopTarget: isTop,
+  };
+}
+
 export default function Tutorial() {
   const [step, setStep] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -20,7 +35,7 @@ export default function Tutorial() {
   const [visible, setVisible] = useState(false);
   const [fading, setFading] = useState(false);
   const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { data: session, update } = useSession();
+  const { data: session } = useSession();
 
   /** Smoothly hides the tutorial without unmounting the component tree */
   const dismissTutorial = useCallback(() => {
@@ -34,8 +49,12 @@ export default function Tutorial() {
   }, []);
 
   const startTutorial = useCallback(() => {
+    const initialPos = getTargetPosition(0);
+    if (initialPos) setPos(initialPos);
     setStep(0);
     setVisible(true);
+    setFading(false);
+    setTransitioning(false);
   }, []);
 
   useEffect(() => {
@@ -75,18 +94,17 @@ export default function Tutorial() {
   const updatePosition = useCallback((stepIdx: number) => {
     if (stepIdx >= STEPS.length) return;
 
+    const p = getTargetPosition(stepIdx);
+    if (p) {
+      setPos(p);
+      return;
+    }
+
     let attempts = 0;
     const checkEl = () => {
-      const el = document.querySelector(STEPS[stepIdx].target);
-      if (el) {
-        const rect = el.getBoundingClientRect();
-        const isTop = rect.top < window.innerHeight / 2;
-        setPos({
-          x: Math.min(Math.max(rect.left + rect.width / 2, 160), window.innerWidth - 160),
-          y: isTop ? rect.bottom : rect.top,
-          targetX: rect.left + rect.width / 2,
-          isTopTarget: isTop,
-        });
+      const retryPos = getTargetPosition(stepIdx);
+      if (retryPos) {
+        setPos(retryPos);
       } else if (attempts < 10) {
         attempts++;
         setTimeout(checkEl, 100);
@@ -98,7 +116,10 @@ export default function Tutorial() {
   useEffect(() => {
     if (step === null) return;
     updatePosition(step);
-    const onResize = () => updatePosition(step);
+    const onResize = () => {
+      setWinH(window.innerHeight);
+      updatePosition(step);
+    };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [step, updatePosition]);
@@ -108,16 +129,26 @@ export default function Tutorial() {
   const handleNext = () => {
     if (step === null) return;
     if (step < STEPS.length - 1) {
+      const nextStep = step + 1;
       setTransitioning(true);
       setTimeout(() => {
-        setStep(step + 1);
-        setTimeout(() => setTransitioning(false), 80);
-      }, 100);
+        // Calculate and set position and step simultaneously while invisible
+        const nextPos = getTargetPosition(nextStep);
+        if (nextPos) {
+          setPos(nextPos);
+        }
+        setStep(nextStep);
+
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            setTransitioning(false);
+          }, 30);
+        });
+      }, 120);
     } else {
       localStorage.setItem('prepbite-tutorial-done', 'true');
-      if (session?.user) {
-        update({ hasSeenTutorial: true });
-        if (session.user.email) markTutorialSeen(session.user.email);
+      if (session?.user?.email) {
+        markTutorialSeen(session.user.email);
       }
       dismissTutorial();
     }
@@ -128,9 +159,8 @@ export default function Tutorial() {
     setShowConfirm(false);
     if (skip) {
       localStorage.setItem('prepbite-tutorial-done', 'true');
-      if (session?.user) {
-        update({ hasSeenTutorial: true });
-        if (session.user.email) markTutorialSeen(session.user.email);
+      if (session?.user?.email) {
+        markTutorialSeen(session.user.email);
       }
       dismissTutorial();
     }
@@ -160,8 +190,8 @@ export default function Tutorial() {
           flexDirection: 'column',
           alignItems: 'center',
           opacity: fading ? 0 : (transitioning ? 0 : 1),
-          transition: 'opacity 0.2s ease',
-          pointerEvents: fading ? 'none' : 'auto',
+          transition: 'opacity 0.12s ease',
+          pointerEvents: fading || transitioning ? 'none' : 'auto',
         }}
       >
         <div className={`tutorial-arrow ${pos.isTopTarget ? 'arrow-up' : 'arrow-down'}`} style={{ 

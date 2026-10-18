@@ -123,7 +123,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [pathname, status, router, theme]);
 
-  if (status === 'loading') return null;
+  if (!customSession && !session && status === 'loading') return null;
   if (!customSession && status === 'unauthenticated') return null;
 
   const handleReplayTutorial = () => {

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { getSession, loginUser, SessionData } from '../lib/auth';
 import { checkAndActivatePro } from '../lib/proUsers';
-import SettingsModal from './components/SettingsModal';
 
 const FAQ_DATA = [
   {
@@ -293,7 +292,6 @@ export default function LandingPage() {
 
   return (
     <div className="lp">
-      <SettingsModal />
       {/* ─── NAVBAR ─── */}
       <nav className="lp-nav">
         <div className="lp-nav-inner">

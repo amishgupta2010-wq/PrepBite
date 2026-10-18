@@ -198,23 +198,24 @@ export default function ProgressPage() {
               <h2 className="heading-md" style={{ marginBottom: '1rem' }}>
                 {selectedDate === todayStr ? "Today's Meals" : 'Meals'}
               </h2>
-              {dayRecipes.meals.map((meal: any, i: number) => {
-                const mealKey = meal.type.toLowerCase() as 'breakfast' | 'lunch' | 'dinner';
-                const isCompleted = currentDayData[mealKey] as boolean;
-                return (
-                  <div key={i} className={`recipe-mini-card ${isCompleted ? 'completed' : ''}`} onClick={() => setCookbook(meal)}>
-                    {meal.image ? (
-                      <img src={meal.image} alt={meal.title} style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
-                    ) : (
-                      <div style={{ width: '48px', height: '48px', borderRadius: '8px', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🍲</div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase' }}>{meal.type}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meal.title}</div>
+              {(() => {
+                const allMealsChecked = Boolean(currentDayData.breakfast && currentDayData.lunch && currentDayData.dinner);
+                return dayRecipes.meals.map((meal: any, i: number) => {
+                  return (
+                    <div key={i} className={`recipe-mini-card ${allMealsChecked ? 'completed' : ''}`} onClick={() => setCookbook(meal)}>
+                      {meal.image ? (
+                        <img src={meal.image} alt={meal.title} style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: '48px', height: '48px', borderRadius: '8px', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🍲</div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase' }}>{meal.type}</div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meal.title}</div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           )}
         </div>

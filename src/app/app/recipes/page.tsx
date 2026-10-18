@@ -86,8 +86,12 @@ export default function RecipesPage() {
   const isPro = isProUser();
 
   const fetchRecipes = useCallback(async (signal?: AbortSignal, isFilterUpdate: boolean = false) => {
-    // Limits removed for free testing
-
+    if (!isPro && !isFilterUpdate && getGenCount() >= FREE_LIMIT) {
+      setUpgradeReason('You have reached your limit of 3 free meal plan generations this month. Upgrade to Pro for unlimited meal plan generations!');
+      setShowUpgrade(true);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -172,7 +176,11 @@ export default function RecipesPage() {
   };
 
   const handleSwapClick = (dayIdx: number, mealIdx: number) => {
-    // Pro limit removed for testing
+    if (!isPro) {
+      setUpgradeReason('Smart recipe swapping is a Pro feature. Upgrade to Pro to swap any recipe with one click!');
+      setShowUpgrade(true);
+      return;
+    }
     setRefreshTarget({ day: dayIdx, meal: mealIdx });
   };
 
@@ -209,32 +217,35 @@ export default function RecipesPage() {
     if (confirming) return;
     setConfirming(true);
     try {
-      const userIngs = JSON.parse(localStorage.getItem('prepbite-ingredients') || '[]').map((i: any) => i.name);
-      const existingShop = JSON.parse(localStorage.getItem('prepbite-shopping') || '[]');
-      const IGNORE_LIST = ['water', 'salt', 'pepper', 'sugar', 'oil', 'olive oil', 'butter', 'garlic powder', 'onion powder'];
-      const allMissing: { name: string }[] = [];
+      if (isPro) {
+        // Non-available ingredients added in shopping cart automatically (Pro only)
+        const userIngs = JSON.parse(localStorage.getItem('prepbite-ingredients') || '[]').map((i: any) => i.name);
+        const existingShop = JSON.parse(localStorage.getItem('prepbite-shopping') || '[]');
+        const IGNORE_LIST = ['water', 'salt', 'pepper', 'sugar', 'oil', 'olive oil', 'butter', 'garlic powder', 'onion powder'];
+        const allMissing: { name: string }[] = [];
 
-      // Auto grocery list (Pro limit removed for testing)
-      days.forEach(day => {
-        day.meals.forEach((meal: any) => {
-          (meal.ingredients || []).forEach((ing: any) => {
-            const ingName = ing.name.toLowerCase();
-            if (!isIngredientAvailable(ing.name, userIngs) && !IGNORE_LIST.some(ignore => ingName.includes(ignore))) {
-              allMissing.push({ name: ing.name });
-            }
+        days.forEach(day => {
+          day.meals.forEach((meal: any) => {
+            (meal.ingredients || []).forEach((ing: any) => {
+              const ingName = ing.name.toLowerCase();
+              if (!isIngredientAvailable(ing.name, userIngs) && !IGNORE_LIST.some(ignore => ingName.includes(ignore))) {
+                allMissing.push({ name: ing.name });
+              }
+            });
           });
         });
-      });
 
-      const deduped = deduplicateIngredients(allMissing);
-      const newItems = deduped.map(item => ({
-        id: Date.now().toString() + Math.random().toString(36),
-        name: item.name, tag: 'Other', count: item.count,
-      }));
-      if (newItems.length > 0) {
-        localStorage.setItem('prepbite-shopping', JSON.stringify([...newItems, ...existingShop]));
-        localStorage.setItem('prepbite-shopping-badge', 'true');
+        const deduped = deduplicateIngredients(allMissing);
+        const newItems = deduped.map(item => ({
+          id: Date.now().toString() + Math.random().toString(36),
+          name: item.name, tag: 'Other', count: item.count,
+        }));
+        if (newItems.length > 0) {
+          localStorage.setItem('prepbite-shopping', JSON.stringify([...newItems, ...existingShop]));
+          localStorage.setItem('prepbite-shopping-badge', 'true');
+        }
       }
+
       const startDate = new Date().toISOString().split('T')[0];
       localStorage.setItem('prepbite-mealplan', JSON.stringify({ days, generatedAt: Date.now(), startDate }));
       localStorage.removeItem(CACHE_KEY);
