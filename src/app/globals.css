@@ -1333,7 +1333,7 @@ input[type="number"] {
 }
 .recipe-mini-card.completed {
   opacity: 0.45;
-  filter: grayscale(40%);
+  filter: grayscale(100%);
 }
 .recipe-mini-card.completed::after {
   content: '✓ Completed';

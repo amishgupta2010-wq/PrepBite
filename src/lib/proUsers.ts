@@ -2,14 +2,10 @@
  * Pro Users Utility
  *
  * Manages Pro access.
- * Only 'amishgupta2010@gmail.com' is whitelisted by default, plus
- * any user account that has bought Pro (tier === 'pro' in prepbite_registered_accounts).
- * Non-pro accounts have 'prepbite-is-pro' wiped immediately.
+ * Pro status is strictly controlled by purchase records (tier === 'pro' in prepbite_registered_accounts).
+ * No emails are hardcoded or automatically granted Pro upon signup.
+ * If an account deletes their account and re-registers, they start with tier: 'free'.
  */
-
-export const PRO_EMAILS: string[] = [
-  'amishgupta2010@gmail.com',
-];
 
 /**
  * Check if an email belongs to a Pro user.
@@ -25,13 +21,7 @@ export function checkAndActivatePro(email?: string | null): boolean {
 
   const normalized = email.toLowerCase().trim();
 
-  // 1. Whitelist check (only amishgupta2010@gmail.com)
-  if (PRO_EMAILS.includes(normalized)) {
-    localStorage.setItem('prepbite-is-pro', 'true');
-    return true;
-  }
-
-  // 2. Purchased Pro check (stored in prepbite_registered_accounts)
+  // Purchased Pro check (stored in prepbite_registered_accounts)
   try {
     const raw = localStorage.getItem('prepbite_registered_accounts');
     if (raw) {
@@ -46,7 +36,7 @@ export function checkAndActivatePro(email?: string | null): boolean {
     }
   } catch {}
 
-  // 3. Not Pro -> Wipe stale pro flag immediately!
+  // Not Pro -> Wipe stale pro flag immediately!
   localStorage.removeItem('prepbite-is-pro');
   return false;
 }
@@ -59,15 +49,20 @@ export function isProUser(): boolean {
 
   try {
     const rawSession = localStorage.getItem('prepbite-session');
+    let email: string | null = null;
     if (rawSession) {
       const session = JSON.parse(rawSession);
-      if (session?.email) {
-        return checkAndActivatePro(session.email);
-      }
+      if (session?.email) email = session.email;
+    }
+    if (!email) {
+      const ob = localStorage.getItem('prepbite-onboarding');
+      if (ob) email = JSON.parse(ob)?.email;
+    }
+    if (email) {
+      return checkAndActivatePro(email);
     }
   } catch {}
 
-  // If no session email found, user cannot be Pro
   localStorage.removeItem('prepbite-is-pro');
   return false;
 }

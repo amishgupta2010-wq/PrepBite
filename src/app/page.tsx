@@ -296,7 +296,7 @@ export default function LandingPage() {
       <nav className="lp-nav">
         <div className="lp-nav-inner">
           <div className="lp-nav-brand" style={{ cursor: 'pointer' }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <img src="/prepbite-logo.png" alt="PrepBite" className="lp-nav-logo" style={{ height: '36px', width: 'auto', borderRadius: '6px' }} />
+            <img src="/prepbite-logo-transparent.png?v=3" alt="PrepBite" className="lp-nav-logo" style={{ height: '36px', width: 'auto', borderRadius: '6px' }} />
           </div>
           <div className="lp-nav-links">
             <button className="lp-nav-link" onClick={() => scrollTo('features')}>Features</button>
@@ -858,7 +858,7 @@ export default function LandingPage() {
       <footer className="lp-footer">
         <div className="lp-footer-inner reveal-init">
           <div className="lp-footer-brand" style={{ cursor: 'pointer' }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <img src="/prepbite-logo.png" alt="PrepBite" style={{ height: '30px', width: 'auto', borderRadius: '6px' }} />
+            <img src="/prepbite-logo-transparent.png?v=3" alt="PrepBite" style={{ height: '30px', width: 'auto', borderRadius: '6px' }} />
           </div>
           <p className="lp-footer-copy">© {new Date().getFullYear()} PrepBite. Less prep, better bites.</p>
           {isLoggedIn ? (

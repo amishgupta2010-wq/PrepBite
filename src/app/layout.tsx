@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'PrepBite — Less prep, better bites',
     description: 'Weekly meal planning & smart grocery lists on autopilot.',
-    images: ['/prepbite-logo.png'],
+    images: ['/prepbite-logo-transparent.png?v=3'],
     type: 'website',
   },
 };

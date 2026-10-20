@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { markTutorialSeen } from '../auth-callback/page';
+import { getSession } from '../../lib/auth';
 
 const STEPS = [
   { target: '.tab-btn-ingredients', text: 'Here you can add available ingredients present in your home!' },
@@ -28,16 +29,17 @@ function getTargetPosition(stepIdx: number) {
 
 export default function Tutorial() {
   const [step, setStep] = useState<number | null>(null);
+  const [textStep, setTextStep] = useState<number>(0);
+  const [textFading, setTextFading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0, targetX: 0, isTopTarget: false });
   const [winH, setWinH] = useState(0);
-  /** Controls visibility without unmounting — avoids the black-flash reflow */
   const [visible, setVisible] = useState(false);
   const [fading, setFading] = useState(false);
   const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { data: session } = useSession();
 
-  /** Smoothly hides the tutorial without unmounting the component tree */
+  /** Smoothly hides the tutorial without triggering any auth or layout unmounting */
   const dismissTutorial = useCallback(() => {
     setFading(true);
     if (fadeTimer.current) clearTimeout(fadeTimer.current);
@@ -45,6 +47,7 @@ export default function Tutorial() {
       setStep(null);
       setVisible(false);
       setFading(false);
+      setTextFading(false);
     }, 220);
   }, []);
 
@@ -52,9 +55,10 @@ export default function Tutorial() {
     const initialPos = getTargetPosition(0);
     if (initialPos) setPos(initialPos);
     setStep(0);
+    setTextStep(0);
+    setTextFading(false);
     setVisible(true);
     setFading(false);
-    setTransitioning(false);
   }, []);
 
   useEffect(() => {
@@ -67,17 +71,19 @@ export default function Tutorial() {
 
     let hasSeenTutorial = false;
     try {
-      const email = session?.user?.email;
-      const accounts = JSON.parse(localStorage.getItem('prepbite_registered_accounts') || '[]');
-      const existingUser = accounts.find((acc: any) => acc.email === email);
-      if (existingUser?.hasSeenTutorial) hasSeenTutorial = true;
+      const email = session?.user?.email || getSession()?.email;
+      if (email) {
+        const accounts = JSON.parse(localStorage.getItem('prepbite_registered_accounts') || '[]');
+        const existingUser = accounts.find((acc: any) => acc.email?.toLowerCase().trim() === email.toLowerCase().trim());
+        if (existingUser?.hasSeenTutorial) hasSeenTutorial = true;
+      }
     } catch {}
 
     const isLocalDone = localStorage.getItem('prepbite-tutorial-done') === 'true';
     const isSessionDone = (session?.user as any)?.hasSeenTutorial === true;
 
     if (!isLocalDone && !isSessionDone && !hasSeenTutorial) {
-      const timer = setTimeout(() => startTutorial(), 500);
+      const timer = setTimeout(() => startTutorial(), 400);
       return () => {
         clearTimeout(timer);
         window.removeEventListener('resize', onResize);
@@ -124,31 +130,31 @@ export default function Tutorial() {
     return () => window.removeEventListener('resize', onResize);
   }, [step, updatePosition]);
 
-  const [transitioning, setTransitioning] = useState(false);
-
   const handleNext = () => {
     if (step === null) return;
     if (step < STEPS.length - 1) {
       const nextStep = step + 1;
-      setTransitioning(true);
-      setTimeout(() => {
-        // Calculate and set position and step simultaneously while invisible
-        const nextPos = getTargetPosition(nextStep);
-        if (nextPos) {
-          setPos(nextPos);
-        }
-        setStep(nextStep);
+      
+      // 1. Calculate next coordinates and start moving the box smoothly
+      const nextPos = getTargetPosition(nextStep);
+      if (nextPos) {
+        setPos(nextPos);
+      }
+      setStep(nextStep);
 
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            setTransitioning(false);
-          }, 30);
-        });
+      // 2. Fade out current text so the next text never flashes at the old place
+      setTextFading(true);
+
+      // 3. Swap text and fade in smoothly as the green box arrives at the new place
+      setTimeout(() => {
+        setTextStep(nextStep);
+        setTextFading(false);
       }, 120);
     } else {
       localStorage.setItem('prepbite-tutorial-done', 'true');
-      if (session?.user?.email) {
-        markTutorialSeen(session.user.email);
+      const userEmail = session?.user?.email || getSession()?.email;
+      if (userEmail) {
+        markTutorialSeen(userEmail);
       }
       dismissTutorial();
     }
@@ -159,14 +165,14 @@ export default function Tutorial() {
     setShowConfirm(false);
     if (skip) {
       localStorage.setItem('prepbite-tutorial-done', 'true');
-      if (session?.user?.email) {
-        markTutorialSeen(session.user.email);
+      const userEmail = session?.user?.email || getSession()?.email;
+      if (userEmail) {
+        markTutorialSeen(userEmail);
       }
       dismissTutorial();
     }
   };
 
-  // Never fully unmount — use opacity/pointer-events to hide
   if (!visible || step === null || !winH || pos.y === 0) {
     return null;
   }
@@ -177,10 +183,10 @@ export default function Tutorial() {
     <>
       <div
         className="tutorial-overlay"
-        style={{ opacity: overlayOpacity, transition: 'opacity 0.2s ease' }}
+        style={{ opacity: overlayOpacity, transition: 'opacity 0.2s ease', pointerEvents: fading ? 'none' : 'auto' }}
       />
 
-      {/* Tooltip Positioned based on top/bottom target */}
+      {/* Tooltip positioned smoothly relative to target */}
       <div
         className="tutorial-container"
         style={{
@@ -189,21 +195,40 @@ export default function Tutorial() {
           bottom: pos.isTopTarget ? undefined : `${winH - pos.y + 8}px`,
           flexDirection: 'column',
           alignItems: 'center',
-          opacity: fading ? 0 : (transitioning ? 0 : 1),
-          transition: 'opacity 0.12s ease',
-          pointerEvents: fading || transitioning ? 'none' : 'auto',
+          opacity: fading ? 0 : 1,
+          transition: 'left 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease',
+          pointerEvents: fading ? 'none' : 'auto',
         }}
       >
-        <div className={`tutorial-arrow ${pos.isTopTarget ? 'arrow-up' : 'arrow-down'}`} style={{ 
-          transform: `translateX(${pos.targetX - pos.x}px)`,
-          order: pos.isTopTarget ? -1 : 1
-        }} />
-        <div className="tutorial-box" style={{ 
-          marginTop: pos.isTopTarget ? '16px' : 0,
-          marginBottom: pos.isTopTarget ? 0 : '16px',
-        }}>
+        <div
+          className={`tutorial-arrow ${pos.isTopTarget ? 'arrow-up' : 'arrow-down'}`}
+          style={{ 
+            transform: `translateX(${pos.targetX - pos.x}px)`,
+            order: pos.isTopTarget ? -1 : 1,
+            transition: 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)',
+          }}
+        />
+        <div
+          className="tutorial-box"
+          style={{ 
+            marginTop: pos.isTopTarget ? '16px' : 0,
+            marginBottom: pos.isTopTarget ? 0 : '16px',
+          }}
+        >
           <button className="tutorial-close" onClick={handleClose}>✕</button>
-          <p className="tutorial-text">{STEPS[step].text}</p>
+          <p
+            className="tutorial-text"
+            style={{
+              opacity: textFading ? 0 : 1,
+              transition: 'opacity 0.12s ease',
+              minHeight: '2.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {STEPS[textStep]?.text}
+          </p>
           <button className="tutorial-next" onClick={handleNext}>
             {step === STEPS.length - 1 ? 'Got it!' : 'Next'}
           </button>
@@ -211,7 +236,7 @@ export default function Tutorial() {
       </div>
 
       {showConfirm && (
-        <div className="tutorial-confirm-overlay">
+        <div className="tutorial-confirm-overlay" style={{ opacity: fading ? 0 : 1, transition: 'opacity 0.2s ease' }}>
           <div className="tutorial-confirm-box">
             <p style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>Are you sure you wanna skip the tutorial?</p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>

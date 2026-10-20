@@ -93,16 +93,16 @@ export default function AuthCallbackPage() {
         localStorage.setItem('prepbite-remember-me', 'true');
       }
 
-      const accountHasPro = checkAndActivatePro(email);
-
       // Route based on registry
       const existingAccount = findAccount(email);
 
       if (!existingAccount) {
         const currentRegistry = getRegistry();
-        currentRegistry.push({ email, hasCompletedOnboarding: false, hasSeenTutorial: false, tier: accountHasPro ? 'pro' : 'free' });
+        currentRegistry.push({ email, hasCompletedOnboarding: false, hasSeenTutorial: false, tier: 'free' });
         saveRegistry(currentRegistry);
       }
+
+      const accountHasPro = checkAndActivatePro(email);
 
       // If user came via "Upgrade to Pro"
       if (wantsCheckout) {

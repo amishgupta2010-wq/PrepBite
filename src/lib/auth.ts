@@ -167,25 +167,36 @@ export function logoutUser() {
   localStorage.removeItem('prepbite-remember-me');
 }
 
-export function deleteAccount() {
+export function deleteAccount(explicitEmail?: string) {
   const session = getSession();
-  if (session) {
-    // Remove user from users list
-    const users = getUsers();
-    const filtered = users.filter(u => u.id !== session.userId);
-    saveUsers(filtered);
+  const targetEmail = (explicitEmail || session?.email || '').toLowerCase().trim();
 
-    // Remove from registered accounts registry
+  // Remove from users list
+  const users = getUsers();
+  const filtered = users.filter(u => {
+    if (session?.userId && u.id === session.userId) return false;
+    if (targetEmail && u.email.toLowerCase().trim() === targetEmail) return false;
+    return true;
+  });
+  saveUsers(filtered);
+
+  // Remove from registered accounts registry so re-registering makes them a completely new user
+  if (targetEmail) {
     try {
       const raw = localStorage.getItem('prepbite_registered_accounts');
       if (raw) {
         const accounts = JSON.parse(raw);
-        const updatedAccounts = accounts.filter((a: any) => a.email.toLowerCase() !== session.email.toLowerCase());
-        localStorage.setItem('prepbite_registered_accounts', JSON.stringify(updatedAccounts));
+        if (Array.isArray(accounts)) {
+          const updatedAccounts = accounts.filter(
+            (a: any) => a.email?.toLowerCase().trim() !== targetEmail
+          );
+          localStorage.setItem('prepbite_registered_accounts', JSON.stringify(updatedAccounts));
+        }
       }
     } catch {}
   }
-  // Clear all PrepBite data EXCEPT reviews (reviews are permanent) and registered accounts
+
+  // Clear all PrepBite user data EXCEPT reviews (reviews are permanent)
   const PRESERVE = new Set(['prepbite_reviews', 'prepbite_registered_accounts']);
   const keysToRemove: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
@@ -193,5 +204,10 @@ export function deleteAccount() {
     if (key && key.startsWith('prepbite-') && !PRESERVE.has(key)) keysToRemove.push(key);
   }
   keysToRemove.forEach(k => localStorage.removeItem(k));
+  localStorage.removeItem('prepbite-is-pro');
+  localStorage.removeItem('prepbite-onboarding');
+  localStorage.removeItem('prepbite-session');
+  localStorage.removeItem('prepbite-remember-me');
+  localStorage.removeItem('prepbite-tutorial-done');
   sessionStorage.removeItem(SESSION_KEY);
 }

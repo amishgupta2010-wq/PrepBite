@@ -40,7 +40,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Auth Guard
     if (status === 'loading') return;
-    if (!customSession && status === 'unauthenticated') {
+    if (!customSession && !session && status === 'unauthenticated') {
       router.push('/');
       return;
     }
@@ -124,7 +124,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [pathname, status, router, theme]);
 
   if (!customSession && !session && status === 'loading') return null;
-  if (!customSession && status === 'unauthenticated') return null;
+  if (!customSession && !session && status === 'unauthenticated') return null;
 
   const handleReplayTutorial = () => {
     localStorage.removeItem('prepbite-tutorial-done');
@@ -193,7 +193,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             ←
           </button>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/prepbite-logo.png" alt="PrepBite Logo" style={{ height: '32px', width: 'auto', borderRadius: '6px', objectFit: 'contain' }} />
+            <img src="/prepbite-logo-transparent.png?v=3" alt="PrepBite Logo" style={{ height: '32px', width: 'auto', borderRadius: '6px', objectFit: 'contain' }} />
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -548,22 +548,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <button className="tutorial-btn-nah" onClick={() => setShowDeleteConfirm(false)}>Nah!</button>
               <button className="tutorial-btn-yep" onClick={async () => {
                 try {
+                  const activeEmail = customSession?.email || (session?.user as any)?.email || userData?.email;
                   // Delete local account data from prepbite-users, but keep reviews intact
                   const { deleteAccount } = await import('../../lib/auth');
-                  deleteAccount();
+                  deleteAccount(activeEmail);
                   
                   // Also remove from registry so re-registering makes them a new user
                   const registered = localStorage.getItem("prepbite_registered_accounts");
-                  if (registered) {
+                  if (registered && activeEmail) {
                     try {
-                      const sessionRaw = localStorage.getItem("prepbite-session");
-                      if (sessionRaw) {
-                        const sess = JSON.parse(sessionRaw);
-                        if (sess.email) {
-                          const accounts = JSON.parse(registered);
-                          const filtered = accounts.filter((a: any) => a.email.toLowerCase() !== sess.email.toLowerCase());
-                          localStorage.setItem("prepbite_registered_accounts", JSON.stringify(filtered));
-                        }
+                      const accounts = JSON.parse(registered);
+                      if (Array.isArray(accounts)) {
+                        const filtered = accounts.filter((a: any) => a.email?.toLowerCase().trim() !== activeEmail.toLowerCase().trim());
+                        localStorage.setItem("prepbite_registered_accounts", JSON.stringify(filtered));
                       }
                     } catch (e) {
                       console.error("Registry cleanup error:", e);
