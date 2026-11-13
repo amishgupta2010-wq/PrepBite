@@ -8,10 +8,18 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "prepbite-secret-key-change-in-production-2024",
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "select_account",
+          access_type: "offline",
+          response_type: "code",
+        },
+      },
     }),
   ],
   session: {
@@ -19,6 +27,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   pages: {
     signIn: "/",
+    error: "/",
   },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
@@ -42,7 +51,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
     async redirect({ url, baseUrl }) {
-      if (url === '/' || url === baseUrl || url === `${baseUrl}/`) return '/';
+      // Allows relative callback URLs and preserves query parameters (like checkout=1)
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      try {
+        if (new URL(url).origin === baseUrl) return url;
+      } catch {}
       return `${baseUrl}/auth-callback`;
     },
   },

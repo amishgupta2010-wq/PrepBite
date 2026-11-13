@@ -65,23 +65,43 @@ export async function registerUser(
 ): Promise<AuthResult> {
   const users = getUsers();
   const normalizedEmail = email.toLowerCase().trim();
-  const normalizedUsername = username.trim();
+  let normalizedUsername = username.trim();
 
-  // Validate
-  if (normalizedUsername.length < 2) return { success: false, error: 'Username must be at least 2 characters.' };
-  if (normalizedUsername.length > 30) return { success: false, error: 'Username must be 30 characters or less.' };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return { success: false, error: 'Please enter a valid email address.' };
-  if (!isOAuth && password.length < 8) return { success: false, error: 'Password must be at least 8 characters.' };
-
-  // Check uniqueness
-  if (users.some(u => u.username.toLowerCase() === normalizedUsername.toLowerCase())) {
-    return { success: false, error: 'Username already exists.' };
-  }
-  if (users.some(u => u.email.toLowerCase() === normalizedEmail)) {
+  // If OAuth user already exists, return them immediately
+  const existingByEmail = users.find(u => u.email.toLowerCase() === normalizedEmail);
+  if (existingByEmail) {
+    if (isOAuth) {
+      return { success: true, user: existingByEmail };
+    }
     return { success: false, error: 'Email already in use.' };
   }
 
-  const passwordHash = await hashPassword(password);
+  // Handle OAuth username adjustments
+  if (isOAuth) {
+    if (normalizedUsername.length < 2) {
+      normalizedUsername = (normalizedEmail.split('@')[0] || 'User').slice(0, 30);
+      if (normalizedUsername.length < 2) normalizedUsername = 'User_' + Math.floor(1000 + Math.random() * 9000);
+    }
+    // Make username unique if already taken
+    let candidate = normalizedUsername;
+    let counter = 1;
+    while (users.some(u => u.username.toLowerCase() === candidate.toLowerCase())) {
+      candidate = `${normalizedUsername.slice(0, 24)}_${counter++}`;
+    }
+    normalizedUsername = candidate;
+  } else {
+    // Validate credentials
+    if (normalizedUsername.length < 2) return { success: false, error: 'Username must be at least 2 characters.' };
+    if (normalizedUsername.length > 30) return { success: false, error: 'Username must be 30 characters or less.' };
+    if (users.some(u => u.username.toLowerCase() === normalizedUsername.toLowerCase())) {
+      return { success: false, error: 'Username already exists.' };
+    }
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return { success: false, error: 'Please enter a valid email address.' };
+  if (!isOAuth && password.length < 8) return { success: false, error: 'Password must be at least 8 characters.' };
+
+  const passwordHash = isOAuth ? '' : await hashPassword(password);
   const newUser: PrepBiteUser = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2),
     username: normalizedUsername,

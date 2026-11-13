@@ -69,6 +69,17 @@ export default function LandingPage() {
       if (searchParams.get('login') === 'true') {
         setShowSignIn(true);
       }
+      const authError = searchParams.get('error');
+      if (authError) {
+        setShowSignIn(true);
+        if (authError === 'OAuthSignin' || authError === 'OAuthCallback') {
+          setLoginError('Google sign-in could not be completed. Please try again.');
+        } else if (authError === 'AccessDenied') {
+          setLoginError('Sign-in access was denied. Please allow permissions to sign in.');
+        } else {
+          setLoginError(`Authentication error: ${authError}. Please try again.`);
+        }
+      }
     }
   }, []);
 
@@ -336,12 +347,30 @@ export default function LandingPage() {
               Welcome back
             </h4>
 
+            {loginError && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#ef4444',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                marginBottom: '0.75rem',
+                textAlign: 'center'
+              }}>
+                {loginError}
+              </div>
+            )}
+
             {/* Google OAuth button only */}
 
             {/* Google OAuth button */}
             <button
               className="lp-google-btn"
-              onClick={() => signIn('google', { callbackUrl: pendingCheckout ? '/auth-callback?checkout=1' : '/auth-callback' })}
+              onClick={() => {
+                setLoginError('');
+                signIn('google', { callbackUrl: pendingCheckout ? '/auth-callback?checkout=1' : '/auth-callback' });
+              }}
               style={{
                 width: '100%',
                 marginTop: '1.25rem',

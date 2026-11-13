@@ -10,7 +10,7 @@ export default function GoogleSignInButton() {
     if (isLoading) return;
     setIsLoading(true);
     try {
-      await signIn('google');
+      await signIn('google', { callbackUrl: '/auth-callback' });
     } catch {
       // signIn redirects, so errors here are rare (e.g. popup blocked)
       setIsLoading(false);

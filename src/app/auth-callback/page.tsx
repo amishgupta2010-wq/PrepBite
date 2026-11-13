@@ -83,15 +83,15 @@ export default function AuthCallbackPage() {
         if (res.user) existingDbUser = res.user;
       }
 
-      if (existingDbUser) {
-        localStorage.setItem('prepbite-session', JSON.stringify({
-          userId: existingDbUser.id,
-          username: existingDbUser.username,
-          email: existingDbUser.email,
-          gender: existingDbUser.gender,
-        }));
-        localStorage.setItem('prepbite-remember-me', 'true');
-      }
+      const sessionData = {
+        userId: existingDbUser?.id || ('oauth_' + Date.now().toString(36)),
+        username: existingDbUser?.username || session.user?.name || email.split('@')[0],
+        email: existingDbUser?.email || email,
+        gender: existingDbUser?.gender || 'other',
+      };
+
+      localStorage.setItem('prepbite-session', JSON.stringify(sessionData));
+      localStorage.setItem('prepbite-remember-me', 'true');
 
       // Route based on registry
       const existingAccount = findAccount(email);
