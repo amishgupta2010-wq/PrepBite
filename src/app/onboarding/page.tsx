@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import WeightRoller from '../components/WeightRoller';
 import { LANGUAGES, TRANSLATIONS, LanguageCode } from '../lib/translations';
-import { registerUser, loginUser } from '../../lib/auth';
+import { registerUser, loginUser, markOnboardingComplete } from '../../lib/auth';
 import { checkAndActivatePro } from '../../lib/proUsers';
-import { markOnboardingComplete } from '../auth-callback/page';
 
 type WeightUnit = 'kg' | 'lbs';
 type HeightUnit = 'cm' | 'ft';

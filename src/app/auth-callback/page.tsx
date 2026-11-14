@@ -2,53 +2,8 @@
 
 import { useSession } from 'next-auth/react';
 import { useEffect } from 'react';
-import { getUserByEmail, registerUser } from '@/lib/auth';
+import { getUserByEmail, registerUser, getRegistry, saveRegistry, findAccount } from '@/lib/auth';
 import { checkAndActivatePro } from '@/lib/proUsers';
-
-// ── Registry helpers ──
-
-interface RegisteredAccount {
-  email: string;
-  tier: 'free' | 'pro';
-  hasCompletedOnboarding: boolean;
-  hasSeenTutorial: boolean;
-  questionAnswers?: Record<string, any>;
-}
-
-function getRegistry(): RegisteredAccount[] {
-  try {
-    const raw = localStorage.getItem('prepbite_registered_accounts');
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
-function saveRegistry(accounts: RegisteredAccount[]) {
-  localStorage.setItem('prepbite_registered_accounts', JSON.stringify(accounts));
-}
-
-function findAccount(email: string): RegisteredAccount | undefined {
-  return getRegistry().find(a => a.email.toLowerCase() === email.toLowerCase());
-}
-
-export function markOnboardingComplete(email: string) {
-  const accounts = getRegistry();
-  const existing = accounts.find(a => a.email.toLowerCase() === email.toLowerCase());
-  if (existing) {
-    existing.hasCompletedOnboarding = true;
-  } else {
-    accounts.push({ email: email.toLowerCase(), tier: 'free', hasCompletedOnboarding: true, hasSeenTutorial: false });
-  }
-  saveRegistry(accounts);
-}
-
-export function markTutorialSeen(email: string) {
-  const accounts = getRegistry();
-  const existing = accounts.find(a => a.email.toLowerCase() === email.toLowerCase());
-  if (existing) {
-    existing.hasSeenTutorial = true;
-    saveRegistry(accounts);
-  }
-}
 
 // ── Page Component ──
 
@@ -117,8 +72,14 @@ export default function AuthCallbackPage() {
           return;
         } else {
           // Account DOES NOT have Pro! Take them to Dodo checkout
+          const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+          const planType = searchParams?.get('plan') || 'annual';
           try {
-            const res = await fetch('/api/create-checkout-session', { method: 'POST' });
+            const res = await fetch('/api/create-checkout-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ planType }),
+            });
             const data = await res.json();
             if (data.checkout_url) {
               window.location.href = data.checkout_url;

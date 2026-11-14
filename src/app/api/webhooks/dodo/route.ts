@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DodoPayments from 'dodopayments';
+import { claimLifetimeSpot } from '@/lib/lifetimeSpots';
 
 export const runtime = 'nodejs';
 
@@ -38,6 +39,13 @@ export async function POST(req: NextRequest) {
     event.type === 'subscription.active'
   ) {
     console.log('[webhook/dodo] Pro payment confirmed:', JSON.stringify(event, null, 2));
+
+    // If lifetime product was purchased, claim a lifetime spot
+    const lifetimeId = process.env.NEXT_PUBLIC_DODO_LIFETIME_PRODUCT_ID;
+    const eventProductId = event.data?.product_id || event.data?.product_cart?.[0]?.product_id;
+    if (lifetimeId && eventProductId === lifetimeId) {
+      claimLifetimeSpot();
+    }
   }
 
   return NextResponse.json({ received: true });

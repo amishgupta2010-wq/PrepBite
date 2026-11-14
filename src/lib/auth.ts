@@ -36,6 +36,51 @@ async function hashPassword(password: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// ── Registered Accounts Registry ──
+
+export interface RegisteredAccount {
+  email: string;
+  tier: 'free' | 'pro';
+  hasCompletedOnboarding: boolean;
+  hasSeenTutorial: boolean;
+  questionAnswers?: Record<string, any>;
+}
+
+export function getRegistry(): RegisteredAccount[] {
+  try {
+    const raw = localStorage.getItem('prepbite_registered_accounts');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+export function saveRegistry(accounts: RegisteredAccount[]) {
+  localStorage.setItem('prepbite_registered_accounts', JSON.stringify(accounts));
+}
+
+export function findAccount(email: string): RegisteredAccount | undefined {
+  return getRegistry().find(a => a.email.toLowerCase() === email.toLowerCase());
+}
+
+export function markOnboardingComplete(email: string) {
+  const accounts = getRegistry();
+  const existing = accounts.find(a => a.email.toLowerCase() === email.toLowerCase());
+  if (existing) {
+    existing.hasCompletedOnboarding = true;
+  } else {
+    accounts.push({ email: email.toLowerCase(), tier: 'free', hasCompletedOnboarding: true, hasSeenTutorial: false });
+  }
+  saveRegistry(accounts);
+}
+
+export function markTutorialSeen(email: string) {
+  const accounts = getRegistry();
+  const existing = accounts.find(a => a.email.toLowerCase() === email.toLowerCase());
+  if (existing) {
+    existing.hasSeenTutorial = true;
+    saveRegistry(accounts);
+  }
+}
+
 // ── User Storage ──
 
 export function getUsers(): PrepBiteUser[] {

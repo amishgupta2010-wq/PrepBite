@@ -35,6 +35,9 @@ export default function LandingPage() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [customSession, setCustomSession] = useState<SessionData | null>(null);
   const [isPro, setIsPro] = useState(false);
+  const [pricingPlan, setPricingPlan] = useState<'monthly' | 'annual' | 'lifetime'>('annual');
+  const [pendingPlan, setPendingPlan] = useState<'monthly' | 'annual' | 'lifetime'>('annual');
+  const [lifetimeSpots, setLifetimeSpots] = useState<number>(25);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // FAQ & Review State
@@ -64,6 +67,15 @@ export default function LandingPage() {
         if (Array.isArray(parsed)) setLocalReviews(parsed);
       }
     } catch {}
+    fetch('/api/lifetime-spots')
+      .then(res => res.json())
+      .then(data => {
+        if (typeof data.remaining === 'number') {
+          setLifetimeSpots(Math.max(0, Math.min(25, data.remaining)));
+        }
+      })
+      .catch(() => {});
+
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       if (searchParams.get('login') === 'true') {
@@ -145,13 +157,17 @@ export default function LandingPage() {
           // If the account DOES NOT have Pro, take them to the Dodo buy menu!
           setCheckoutLoading(true);
           try {
-            const res = await fetch('/api/create-checkout-session', { method: 'POST' });
+            const res = await fetch('/api/create-checkout-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ planType: pendingPlan }),
+            });
             const data = await res.json();
             if (data.checkout_url) {
               window.location.href = data.checkout_url;
               return;
             } else {
-              alert('Unable to start checkout. Please try again.');
+              alert(data.error || 'Unable to start checkout. Please try again.');
               setCheckoutLoading(false);
               router.push('/app');
             }
@@ -229,8 +245,10 @@ export default function LandingPage() {
     setReviewSubmitting(false);
   };
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (plan?: 'monthly' | 'annual' | 'lifetime') => {
     if (checkoutLoading) return;
+    const targetPlan = plan || pricingPlan;
+    setPendingPlan(targetPlan);
     // Require sign-in before going to checkout
     if (!isLoggedIn) {
       setPendingCheckout(true);
@@ -244,12 +262,16 @@ export default function LandingPage() {
     }
     setCheckoutLoading(true);
     try {
-      const res = await fetch('/api/create-checkout-session', { method: 'POST' });
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planType: targetPlan }),
+      });
       const data = await res.json();
       if (data.checkout_url) {
         window.location.href = data.checkout_url;
       } else {
-        alert('Unable to start checkout. Please try again.');
+        alert(data.error || 'Unable to start checkout. Please try again.');
         setCheckoutLoading(false);
       }
     } catch {
@@ -264,12 +286,16 @@ export default function LandingPage() {
     setPendingCheckout(false);
     setCheckoutLoading(true);
     try {
-      const res = await fetch('/api/create-checkout-session', { method: 'POST' });
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planType: pendingPlan }),
+      });
       const data = await res.json();
       if (data.checkout_url) {
         window.location.href = data.checkout_url;
       } else {
-        alert('Unable to start checkout. Please try again.');
+        alert(data.error || 'Unable to start checkout. Please try again.');
         setCheckoutLoading(false);
       }
     } catch {
@@ -369,7 +395,7 @@ export default function LandingPage() {
               className="lp-google-btn"
               onClick={() => {
                 setLoginError('');
-                signIn('google', { callbackUrl: pendingCheckout ? '/auth-callback?checkout=1' : '/auth-callback' });
+                signIn('google', { callbackUrl: pendingCheckout ? `/auth-callback?checkout=1&plan=${pendingPlan}` : '/auth-callback' });
               }}
               style={{
                 width: '100%',
@@ -498,17 +524,48 @@ export default function LandingPage() {
       </section>
 
       <section className="lp-section lp-section-alt" id="pricing">
-        <div className="lp-section-inner">
-          <p className="lp-section-eyebrow reveal-init">Pricing</p>
-          <h2 className="lp-section-title reveal-init reveal-heading">Simple, transparent pricing</h2>
-          <p className="lp-section-sub reveal-init">Start free. Upgrade when you need more power.</p>
+        <div className="lp-section-inner" style={{ maxWidth: '960px' }}>
+          <p className="lp-section-eyebrow reveal-init">Membership Plans</p>
+          <h2 className="lp-section-title reveal-init reveal-heading">Choose Your PrepBite Plan</h2>
+          <p className="lp-section-sub reveal-init">Unlock unlimited meal planning, smart recipe swaps, and auto grocery sync.</p>
+
+          <style>{`
+            @keyframes pbGlint {
+              0% { transform: translateX(-160%) skewX(-20deg); }
+              40%, 100% { transform: translateX(260%) skewX(-20deg); }
+            }
+            .pb-glint-gold::after {
+              content: '';
+              position: absolute;
+              top: 0; left: 0; width: 60%; height: 100%;
+              background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+              transform: translateX(-160%) skewX(-20deg);
+              animation: pbGlint 3.6s infinite ease-in-out;
+              pointer-events: none;
+            }
+            .pb-glint-blue::after {
+              content: '';
+              position: absolute;
+              top: 0; left: 0; width: 60%; height: 100%;
+              background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+              transform: translateX(-160%) skewX(-20deg);
+              animation: pbGlint 3.6s infinite ease-in-out;
+              animation-delay: 1.2s;
+              pointer-events: none;
+            }
+            @media (max-width: 820px) {
+              .lp-plans-grid {
+                grid-template-columns: 1fr !important;
+              }
+            }
+          `}</style>
 
           {isLoggedIn && isPro ? (
             /* Pro user: show benefits + thank-you */
             <div style={{ maxWidth: '520px', margin: '0 auto', textAlign: 'center' }}>
               <div className="lp-price-card lp-price-pro reveal-init" style={{ marginBottom: '1.5rem' }}>
                 <div className="lp-price-badge">👑 YOUR PLAN</div>
-                <h3 className="lp-price-name lp-gradient-text">Pro</h3>
+                <h3 className="lp-price-name lp-gradient-text">Pro Member</h3>
                 <ul className="lp-price-features" style={{ textAlign: 'left' }}>
                   <li><span className="lp-check">✓</span> Unlimited meal plan generations</li>
                   <li><span className="lp-check">✓</span> Unlimited smart recipe swapping</li>
@@ -524,47 +581,274 @@ export default function LandingPage() {
               </p>
             </div>
           ) : (
-            /* Free user / Not logged in: show normal pricing grid */
-            <div className="lp-pricing-grid">
-              {/* Free tier */}
-              <div className="lp-price-card reveal-init reveal-stagger-1">
-                <h3 className="lp-price-name">Free</h3>
-                <div className="lp-price-amount">
-                  <span className="lp-price-dollar">$0</span>
-                  <span className="lp-price-period">/month</span>
+            /* 3 Membership Plan Choices (No Free Tier) */
+            <div className="reveal-init" style={{ maxWidth: '900px', margin: '0 auto' }}>
+              <div className="lp-plans-grid" style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '1.15rem',
+                marginBottom: '1.8rem',
+              }}>
+                {/* ── Monthly Plan (Green) ── */}
+                <div
+                  onClick={() => setPricingPlan('monthly')}
+                  style={{
+                    position: 'relative',
+                    background: pricingPlan === 'monthly'
+                      ? 'linear-gradient(180deg, rgba(0, 230, 118, 0.12) 0%, rgba(15, 15, 15, 0.98) 100%)'
+                      : 'var(--bg-card, #141414)',
+                    border: pricingPlan === 'monthly'
+                      ? '2px solid #00E676'
+                      : '1.5px solid rgba(0, 230, 118, 0.3)',
+                    borderRadius: '16px',
+                    padding: '1.5rem 1.25rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.25s ease',
+                    boxShadow: pricingPlan === 'monthly' ? '0 0 26px rgba(0, 230, 118, 0.25)' : 'none',
+                    transform: pricingPlan === 'monthly' ? 'translateY(-3px)' : 'none',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.9rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, letterSpacing: '1px', color: '#00E676', textTransform: 'uppercase' }}>
+                      Monthly
+                    </span>
+                    <div style={{
+                      width: '18px', height: '18px', borderRadius: '50%',
+                      border: pricingPlan === 'monthly' ? '5px solid #00E676' : '2px solid #555',
+                      background: pricingPlan === 'monthly' ? '#0A0A0A' : 'transparent',
+                    }} />
+                  </div>
+                  <div style={{ marginBottom: '1.1rem' }}>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#FAFAFA', fontFamily: 'Outfit, sans-serif' }}>
+                      $5 <span style={{ fontSize: '0.9rem', color: '#888', fontWeight: 500 }}>/ mo</span>
+                    </div>
+                    <p style={{ fontSize: '0.86rem', color: '#00E676', fontWeight: 600, marginTop: '0.25rem', marginBottom: 0 }}>
+                      $1.15/week, billed monthly
+                    </p>
+                  </div>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1rem 0', display: 'flex', flexDirection: 'column', gap: '0.6rem', flexGrow: 1, fontSize: '0.83rem', color: '#ccc' }}>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#00E676' }}>✓</span> Unlimited generations</li>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#00E676' }}>✓</span> Unlimited recipe swaps</li>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#00E676' }}>✓</span> Auto missing ingredients</li>
+                  </ul>
                 </div>
-                <ul className="lp-price-features">
-                  <li><span className="lp-check">✓</span> 3 meal plan generations / month</li>
-                  <li><span className="lp-cross">✕</span> Recipe swapping</li>
-                  <li><span className="lp-cross">✕</span> Auto grocery list sync</li>
-                </ul>
-                {isLoggedIn ? (
-                  <button className="lp-btn-outline" style={{ width: '100%' }} onClick={() => router.push('/app')}>
-                    Current Plan
-                  </button>
-                ) : (
-                  <button className="lp-btn-outline" style={{ width: '100%' }} onClick={() => setShowSignIn(true)}>
-                    Try it for free
-                  </button>
-                )}
-              </div>
-              {/* Pro tier */}
-              <div className="lp-price-card lp-price-pro reveal-init reveal-stagger-2">
-                <div className="lp-price-badge">👑 BEST VALUE</div>
-                <h3 className="lp-price-name lp-gradient-text">Pro</h3>
-                <div className="lp-price-amount">
-                  <span className="lp-price-dollar">$5</span>
-                  <span className="lp-price-period">/month</span>
+
+                {/* ── Annual Plan (Gold with Crown & Glint, "Most popular", Pre-selected) ── */}
+                <div
+                  onClick={() => setPricingPlan('annual')}
+                  className="pb-glint-gold"
+                  style={{
+                    position: 'relative',
+                    background: pricingPlan === 'annual'
+                      ? 'linear-gradient(180deg, rgba(255, 215, 0, 0.14) 0%, rgba(15, 15, 15, 0.98) 100%)'
+                      : 'var(--bg-card, #141414)',
+                    border: pricingPlan === 'annual'
+                      ? '2px solid #FFD700'
+                      : '1.5px solid rgba(255, 215, 0, 0.45)',
+                    borderRadius: '16px',
+                    padding: '1.5rem 1.25rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.25s ease',
+                    boxShadow: pricingPlan === 'annual' ? '0 0 30px rgba(255, 215, 0, 0.3)' : 'none',
+                    transform: pricingPlan === 'annual' ? 'translateY(-3px)' : 'none',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute', top: '0', right: '0',
+                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                    color: '#0A0A0A',
+                    padding: '0.24rem 0.75rem',
+                    borderRadius: '0 14px 0 10px',
+                    fontSize: '0.72rem', fontWeight: 800,
+                    display: 'flex', alignItems: 'center', gap: '0.3rem',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                    zIndex: 2,
+                  }}>
+                    <span>👑</span> Most popular
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.9rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, letterSpacing: '1px', color: '#FFD700', textTransform: 'uppercase' }}>
+                      Annual
+                    </span>
+                    <div style={{
+                      width: '18px', height: '18px', borderRadius: '50%',
+                      border: pricingPlan === 'annual' ? '5px solid #FFD700' : '2px solid #555',
+                      background: pricingPlan === 'annual' ? '#0A0A0A' : 'transparent',
+                      marginRight: '5.5rem',
+                    }} />
+                  </div>
+                  <div style={{ marginBottom: '1.1rem' }}>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#FAFAFA', fontFamily: 'Outfit, sans-serif' }}>
+                      $39 <span style={{ fontSize: '0.9rem', color: '#888', fontWeight: 500 }}>/ yr</span>
+                    </div>
+                    <p style={{ fontSize: '0.86rem', color: '#FFD700', fontWeight: 700, marginTop: '0.25rem', marginBottom: 0 }}>
+                      $0.75/week, billed annually
+                    </p>
+                  </div>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1rem 0', display: 'flex', flexDirection: 'column', gap: '0.6rem', flexGrow: 1, fontSize: '0.83rem', color: '#ccc' }}>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#FFD700' }}>✓</span> All Pro features included</li>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#FFD700' }}>✓</span> 35% weekly savings</li>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#FFD700' }}>✓</span> Priority recipe generation</li>
+                  </ul>
                 </div>
-                <ul className="lp-price-features">
-                  <li><span className="lp-check">✓</span> Unlimited meal plan generations</li>
-                  <li><span className="lp-check">✓</span> Unlimited smart recipe swapping</li>
-                  <li><span className="lp-check">✓</span> Auto-add missing ingredients</li>
-                </ul>
-                <button className="lp-btn-gold" style={{ width: '100%' }} onClick={handleUpgrade} disabled={checkoutLoading}>
-                  {checkoutLoading ? 'Redirecting...' : 'Upgrade to Pro'}
-                </button>
+
+                {/* ── Lifetime Plan (Diamond Blue with Glint & Spots Bar) ── */}
+                <div
+                  onClick={() => {
+                    if (lifetimeSpots > 0) setPricingPlan('lifetime');
+                  }}
+                  className={lifetimeSpots > 0 ? 'pb-glint-blue' : ''}
+                  style={{
+                    position: 'relative',
+                    background: lifetimeSpots <= 0
+                      ? 'rgba(20, 20, 20, 0.7)'
+                      : pricingPlan === 'lifetime'
+                        ? 'linear-gradient(180deg, rgba(0, 229, 255, 0.14) 0%, rgba(15, 15, 15, 0.98) 100%)'
+                        : 'var(--bg-card, #141414)',
+                    border: lifetimeSpots <= 0
+                      ? '1px solid rgba(255, 255, 255, 0.08)'
+                      : pricingPlan === 'lifetime'
+                        ? '2px solid #00E5FF'
+                        : '1.5px solid rgba(0, 229, 255, 0.35)',
+                    borderRadius: '16px',
+                    padding: '1.5rem 1.25rem',
+                    cursor: lifetimeSpots <= 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.25s ease',
+                    boxShadow: lifetimeSpots > 0 && pricingPlan === 'lifetime' ? '0 0 30px rgba(0, 229, 255, 0.3)' : 'none',
+                    transform: lifetimeSpots > 0 && pricingPlan === 'lifetime' ? 'translateY(-3px)' : 'none',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Sold Out Overlay */}
+                  {lifetimeSpots <= 0 && (
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      backdropFilter: 'blur(3.5px)',
+                      background: 'rgba(0, 0, 0, 0.45)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      zIndex: 20,
+                    }}>
+                      <div style={{
+                        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                        color: '#0A0A0A',
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: 900,
+                        fontSize: '1.3rem',
+                        letterSpacing: '2px',
+                        padding: '0.45rem 1.6rem',
+                        borderRadius: '6px',
+                        transform: 'rotate(-14deg)',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.8), 0 0 12px rgba(255, 215, 0, 0.5)',
+                        border: '2px solid #0A0A0A',
+                        textTransform: 'uppercase',
+                      }}>
+                        Sold Out
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.9rem', filter: lifetimeSpots <= 0 ? 'blur(1px)' : 'none' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, letterSpacing: '1px', color: '#00E5FF', textTransform: 'uppercase' }}>
+                      💎 Lifetime
+                    </span>
+                    <div style={{
+                      width: '18px', height: '18px', borderRadius: '50%',
+                      border: pricingPlan === 'lifetime' ? '5px solid #00E5FF' : '2px solid #555',
+                      background: pricingPlan === 'lifetime' ? '#0A0A0A' : 'transparent',
+                    }} />
+                  </div>
+                  <div style={{ marginBottom: '0.9rem', filter: lifetimeSpots <= 0 ? 'blur(1px)' : 'none' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#00E5FF', fontFamily: 'Outfit, sans-serif', lineHeight: 1.25 }}>
+                      Founding Member Lifetime Pass
+                    </div>
+                    <p style={{ fontSize: '0.82rem', color: '#999', marginTop: '0.25rem', marginBottom: 0 }}>
+                      Pay once, keep Pro forever
+                    </p>
+                  </div>
+
+                  {/* Scarcity Bar */}
+                  <div style={{ marginBottom: '1.1rem', filter: lifetimeSpots <= 0 ? 'blur(1px)' : 'none' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#00E5FF', marginBottom: '0.35rem' }}>
+                      Only {lifetimeSpots} of 25 spots remaining
+                    </div>
+                    <div style={{
+                      width: '100%', height: '8px',
+                      background: 'rgba(0, 229, 255, 0.15)',
+                      border: '1px solid rgba(0, 229, 255, 0.3)',
+                      borderRadius: '999px',
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${Math.min(100, Math.max(0, ((25 - lifetimeSpots) / 25) * 100))}%`,
+                        background: 'linear-gradient(90deg, #0284C7, #00E5FF)',
+                        boxShadow: '0 0 10px rgba(0, 229, 255, 0.6)',
+                        borderRadius: '999px',
+                        transition: 'width 0.5s ease',
+                      }} />
+                    </div>
+                  </div>
+
+                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.8rem 0', display: 'flex', flexDirection: 'column', gap: '0.6rem', flexGrow: 1, fontSize: '0.83rem', color: '#ccc', filter: lifetimeSpots <= 0 ? 'blur(1px)' : 'none' }}>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#00E5FF' }}>✓</span> No recurring subscriptions</li>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#00E5FF' }}>✓</span> Lifetime feature updates</li>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#00E5FF' }}>✓</span> Founding Member badge</li>
+                  </ul>
+
+                  <div style={{
+                    fontSize: '0.7rem', color: 'rgba(0, 229, 255, 0.75)', lineHeight: 1.3,
+                    marginTop: 'auto', borderTop: '1px solid rgba(0, 229, 255, 0.15)', paddingTop: '0.45rem',
+                    filter: lifetimeSpots <= 0 ? 'blur(1px)' : 'none',
+                  }}>
+                    *Fair use limits apply: up to 50 meal plan generations per month under our Terms of Service.
+                  </div>
+                </div>
               </div>
+
+              {/* ── Single "Continue" Button ── */}
+              <button
+                onClick={() => handleUpgrade(pricingPlan)}
+                disabled={checkoutLoading || (pricingPlan === 'lifetime' && lifetimeSpots <= 0)}
+                style={{
+                  width: '100%',
+                  padding: '1.05rem',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: checkoutLoading
+                    ? 'rgba(255,255,255,0.1)'
+                    : pricingPlan === 'monthly'
+                      ? 'linear-gradient(135deg, #00E676, #10B981)'
+                      : pricingPlan === 'lifetime'
+                        ? 'linear-gradient(135deg, #00E5FF, #0284C7)'
+                        : 'linear-gradient(135deg, #FFD700, #FFA500)',
+                  color: '#0A0A0A',
+                  fontFamily: 'Outfit, sans-serif',
+                  fontSize: '1.2rem',
+                  fontWeight: 800,
+                  cursor: checkoutLoading || (pricingPlan === 'lifetime' && lifetimeSpots <= 0) ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.25s ease',
+                  boxShadow: checkoutLoading
+                    ? 'none'
+                    : pricingPlan === 'monthly'
+                      ? '0 6px 25px rgba(0, 230, 118, 0.4)'
+                      : pricingPlan === 'lifetime'
+                        ? '0 6px 25px rgba(0, 229, 255, 0.4)'
+                        : '0 6px 25px rgba(255, 215, 0, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                {checkoutLoading ? 'Redirecting to checkout...' : 'Continue →'}
+              </button>
             </div>
           )}
         </div>

@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { markTutorialSeen } from '../auth-callback/page';
-import { getSession } from '../../lib/auth';
+import { getSession, markTutorialSeen } from '../../lib/auth';
 
 const STEPS = [
   { target: '.tab-btn-ingredients', text: 'Here you can add available ingredients present in your home!' },
