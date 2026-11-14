@@ -691,9 +691,10 @@ export default function LandingPage() {
                     </p>
                   </div>
                   <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1rem 0', display: 'flex', flexDirection: 'column', gap: '0.6rem', flexGrow: 1, fontSize: '0.83rem', color: '#ccc' }}>
-                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#FFD700' }}>✓</span> All Pro features included</li>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#FFD700' }}>✓</span> Unlimited generations</li>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#FFD700' }}>✓</span> Unlimited recipe swaps</li>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#FFD700' }}>✓</span> Auto missing ingredients</li>
                     <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#FFD700' }}>✓</span> 35% weekly savings</li>
-                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#FFD700' }}>✓</span> Priority recipe generation</li>
                   </ul>
                 </div>
 
@@ -764,12 +765,12 @@ export default function LandingPage() {
                       background: pricingPlan === 'lifetime' ? '#0A0A0A' : 'transparent',
                     }} />
                   </div>
-                  <div style={{ marginBottom: '0.9rem', filter: lifetimeSpots <= 0 ? 'blur(1px)' : 'none' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#00E5FF', fontFamily: 'Outfit, sans-serif', lineHeight: 1.25 }}>
-                      Founding Member Lifetime Pass
+                  <div style={{ marginBottom: '1.1rem', filter: lifetimeSpots <= 0 ? 'blur(1px)' : 'none' }}>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#FAFAFA', fontFamily: 'Outfit, sans-serif' }}>
+                      $99 <span style={{ fontSize: '0.9rem', color: '#888', fontWeight: 500 }}>/ once</span>
                     </div>
-                    <p style={{ fontSize: '0.82rem', color: '#999', marginTop: '0.25rem', marginBottom: 0 }}>
-                      Pay once, keep Pro forever
+                    <p style={{ fontSize: '0.86rem', color: '#00E5FF', fontWeight: 700, marginTop: '0.25rem', marginBottom: 0 }}>
+                      Founding Member Pass
                     </p>
                   </div>
 
@@ -787,7 +788,7 @@ export default function LandingPage() {
                     }}>
                       <div style={{
                         height: '100%',
-                        width: `${Math.min(100, Math.max(0, ((25 - lifetimeSpots) / 25) * 100))}%`,
+                        width: `${Math.min(100, Math.max(0, (lifetimeSpots / 25) * 100))}%`,
                         background: 'linear-gradient(90deg, #0284C7, #00E5FF)',
                         boxShadow: '0 0 10px rgba(0, 229, 255, 0.6)',
                         borderRadius: '999px',
@@ -797,8 +798,8 @@ export default function LandingPage() {
                   </div>
 
                   <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.8rem 0', display: 'flex', flexDirection: 'column', gap: '0.6rem', flexGrow: 1, fontSize: '0.83rem', color: '#ccc', filter: lifetimeSpots <= 0 ? 'blur(1px)' : 'none' }}>
+                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#00E5FF' }}>✓</span> All Pro features included</li>
                     <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#00E5FF' }}>✓</span> No recurring subscriptions</li>
-                    <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#00E5FF' }}>✓</span> Lifetime feature updates</li>
                     <li style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><span style={{ color: '#00E5FF' }}>✓</span> Founding Member badge</li>
                   </ul>
 

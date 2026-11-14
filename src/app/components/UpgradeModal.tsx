@@ -49,8 +49,8 @@ export default function UpgradeModal({ onClose, defaultPlan = 'annual' }: Upgrad
   }, [selectedPlan]);
 
   const isSoldOut = spotsRemaining <= 0;
-  // Progress bar fills proportionally as spots are taken: (25 - spotsRemaining) / 25
-  const fillPercent = Math.min(100, Math.max(0, ((25 - spotsRemaining) / 25) * 100));
+  // Progress bar countdown: 100% full when 25/25 remain, visually shrinks as spots are claimed
+  const fillPercent = Math.min(100, Math.max(0, (spotsRemaining / 25) * 100));
 
   const handleContinue = async () => {
     if (loading) return;
@@ -348,13 +348,16 @@ export default function UpgradeModal({ onClose, defaultPlan = 'annual' }: Upgrad
               flexGrow: 1, fontSize: '0.8rem', color: '#ccc',
             }}>
               <li style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
-                <span style={{ color: '#FFD700' }}>✓</span> All Pro features included
+                <span style={{ color: '#FFD700' }}>✓</span> Unlimited generations
+              </li>
+              <li style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+                <span style={{ color: '#FFD700' }}>✓</span> Unlimited recipe swaps
+              </li>
+              <li style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+                <span style={{ color: '#FFD700' }}>✓</span> Auto missing ingredients
               </li>
               <li style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
                 <span style={{ color: '#FFD700' }}>✓</span> 35% weekly savings
-              </li>
-              <li style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
-                <span style={{ color: '#FFD700' }}>✓</span> Priority recipe generation
               </li>
             </ul>
           </div>
@@ -436,21 +439,18 @@ export default function UpgradeModal({ onClose, defaultPlan = 'annual' }: Upgrad
               }} />
             </div>
 
-            <div style={{ marginBottom: '0.9rem', filter: isSoldOut ? 'blur(1px)' : 'none' }}>
-              <div style={{
-                fontSize: '1.05rem', fontWeight: 800,
-                color: '#00E5FF', fontFamily: 'Outfit, sans-serif',
-                lineHeight: 1.25,
-              }}>
-                Founding Member Lifetime Pass
+            <div style={{ marginBottom: '1rem', filter: isSoldOut ? 'blur(1px)' : 'none' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#FAFAFA', fontFamily: 'Outfit, sans-serif' }}>
+                $99 <span style={{ fontSize: '0.85rem', color: '#888', fontWeight: 500 }}>/ once</span>
               </div>
               <p style={{
-                fontSize: '0.8rem',
-                color: 'var(--text-secondary, #A0A0A0)',
+                fontSize: '0.84rem',
+                color: '#00E5FF',
+                fontWeight: 700,
                 marginTop: '0.25rem',
                 marginBottom: 0,
               }}>
-                Pay once, keep Pro forever
+                Founding Member Pass
               </p>
             </div>
 
@@ -463,7 +463,7 @@ export default function UpgradeModal({ onClose, defaultPlan = 'annual' }: Upgrad
               }}>
                 <span>Only {spotsRemaining} of 25 spots remaining</span>
               </div>
-              {/* Blue Bar: completely unfilled originally (0%), fills up with each purchase to 100% on 25th user */}
+              {/* Blue Bar: 100% full when 25/25 remain, visually shrinks as spots are claimed */}
               <div style={{
                 width: '100%', height: '8px',
                 background: 'rgba(0, 229, 255, 0.15)',
@@ -490,10 +490,10 @@ export default function UpgradeModal({ onClose, defaultPlan = 'annual' }: Upgrad
               filter: isSoldOut ? 'blur(1px)' : 'none',
             }}>
               <li style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
-                <span style={{ color: '#00E5FF' }}>✓</span> No recurring subscriptions
+                <span style={{ color: '#00E5FF' }}>✓</span> All Pro features included
               </li>
               <li style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
-                <span style={{ color: '#00E5FF' }}>✓</span> Lifetime feature updates
+                <span style={{ color: '#00E5FF' }}>✓</span> No recurring subscriptions
               </li>
               <li style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
                 <span style={{ color: '#00E5FF' }}>✓</span> Founding Member badge
